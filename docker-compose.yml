@@ -5,9 +5,11 @@ services:
     ports:
       - "8080:8080"
     env_file:
-      - .env
+      - .env.docker
     depends_on:
       - mongo
+    volumes:
+      - ./server.log:/app/server.log
   mongo:
     image: mongo
     ports:
