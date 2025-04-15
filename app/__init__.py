@@ -4,6 +4,9 @@ from flask_pymongo import PyMongo
 from dotenv import load_dotenv
 import os
 from datetime import datetime
+from flask_socketio import SocketIO
+
+socketio = SocketIO(cors_allowed_origins="*")
 
 mongo = PyMongo()
 
@@ -13,6 +16,8 @@ load_dotenv(env_file)
 
 def create_app():
     app = Flask(__name__)
+
+    socketio.init_app(app)
 
     app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))  # for signing session cookies
     # Session cookie security (HttpOnly, etc.)
@@ -43,3 +48,5 @@ def create_app():
     app.register_blueprint(main)
 
     return app
+
+from . import sockets

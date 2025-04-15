@@ -1,11 +1,15 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Sample Game with Phaser</title>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.js"></script>
+    <meta charset="UTF-8">
+    <title>XOR MMO</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
 </head>
 <body>
+    <script>
+        const username = "{{ username }}";  // passed from Flask session
+    </script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='game/main.js') }}"></script>
 </body>
 </html>

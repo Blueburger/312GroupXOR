@@ -12,7 +12,9 @@ def index():
 
 @main.route("/game")
 def game():
-    return render_template("game.html")
+    if "username" not in session:
+        return redirect(url_for("main.index"))
+    return render_template("game.html", username=session["username"])
 
 @main.route("/pingdb")
 def ping_db():
