@@ -10,6 +10,9 @@
         {% if username %}
             <h1>Welcome back, {{ username }}!</h1>
             <a href="/logout">Logout</a>
+            <form action="/game">
+                <button type="submit">Go to Game</button>
+            </form>
         {% else %}
             <h1>Welcome to XOR Project</h1>
             <form action="/login" method="POST">
