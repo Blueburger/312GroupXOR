@@ -1,8 +1,31 @@
 <!DOCTYPE html>
-<html>
-    <head><title>Hello</title></head>
-    <body>
-        <h1>Hello World!</h1>
-        <h2>you are not here</h2>
-    </body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>XOR Project - Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        {% if username %}
+            <h1>Welcome back, {{ username }}!</h1>
+            <a href="/logout">Logout</a>
+        {% else %}
+            <h1>Welcome to XOR Project</h1>
+            <form action="/login" method="POST">
+                <input type="text" name="username" placeholder="Username" required />
+                <input type="password" name="password" placeholder="Password" required />
+                <button type="submit">Login</button>
+            </form>
+    
+            <hr>
+    
+            <form action="/register" method="POST">
+                <input type="text" name="new_username" placeholder="Create username" required />
+                <input type="password" name="new_password" placeholder="Create password" required />
+                <button type="submit">Create Account</button>
+            </form>
+        {% endif %}
+    </div>
+</body>
 </html>

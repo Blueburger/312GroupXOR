@@ -13,6 +13,13 @@ load_dotenv(env_file)
 
 def create_app():
     app = Flask(__name__)
+
+    app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))  # for signing session cookies
+    # Session cookie security (HttpOnly, etc.)
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SECURE"] = False  # Set to True in production over HTTPS
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
     app.config["MONGO_URI"] = os.getenv("MONGO_URI","mongodb://localhost:27017/XORdb")
 
     mongo.init_app(app)

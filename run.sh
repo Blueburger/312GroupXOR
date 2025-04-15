@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Flask + Mongo Bootstrap Script"
+
 
 echo "Choose an option:"
 echo "1) Run everything with Docker Compose (Flask + Mongo)"
