@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from app import mongo
 from werkzeug.security import generate_password_hash, check_password_hash
 import os, re, uuid, hashlib
+
 main = Blueprint('main', __name__)
 
 @main.route("/")
@@ -46,16 +47,17 @@ def register():
     password = request.form.get("new_password")
 
     if not password_is_valid(password):
-        return "Password must be 8+ characters, contain a capital letter and a special character.", 400
+        current_app.logger.info(f"{request.remote_addr} attempted register: {username} — failed (invalid password format)")
+        return "Password must be stronger", 400
 
-    # Check if user exists
     if mongo.db.users.find_one({"username": username}):
-        return "Username already exists.", 400
+        current_app.logger.info(f"{request.remote_addr} attempted register: {username} — failed (username exists)")
+        return "Username exists", 400
 
-    # Hash password and save
     hashed_pw = generate_password_hash(password)
     mongo.db.users.insert_one({"username": username, "password": hashed_pw})
-
+    session["username"] = username
+    current_app.logger.info(f"{request.remote_addr} register: {username} — success")
     return redirect(url_for("main.index"))
 
 
@@ -65,20 +67,16 @@ def login():
     password = request.form.get("password")
 
     user = mongo.db.users.find_one({"username": username})
-    if not user or not check_password_hash(user["password"], password):
-        return "Invalid credentials", 401
+    if not user:
+        current_app.logger.info(f"{request.remote_addr} login attempt: {username} — failed (user not found)")
+        return "Invalid username", 401
 
-    # Generate a session token
-    raw_token = str(uuid.uuid4())
-    token_hash = hash_token(raw_token)
+    if not check_password_hash(user["password"], password):
+        current_app.logger.info(f"{request.remote_addr} login attempt: {username} — failed (wrong password)")
+        return "Invalid password", 401
 
-    # Save hashed token to DB
-    mongo.db.tokens.insert_one({"username": username, "token_hash": token_hash})
-
-    # Store info in session (cookie)
     session["username"] = username
-    session["token"] = raw_token
-
+    current_app.logger.info(f"{request.remote_addr} login: {username} — success")
     return redirect(url_for("main.index"))
 
 @main.route("/logout")
