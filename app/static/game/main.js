@@ -22,11 +22,14 @@ const config = {
 
 let socket;
 let otherPlayers = {};
+let mapSeed = null;
 
 function create() {
+    const seed = 'world1'; // Replace with value from server in future
+    Math.seedrandom(seed);
     const graphics = this.add.graphics();
-    graphics.fillStyle(0x2a2a2a, 1);
-    graphics.fillRect(0, 0, worldWidth, worldHeight);
+
+    
 
     this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
     this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
@@ -43,13 +46,39 @@ function create() {
     });
     usernameText.setOrigin(0.5, 1.2);
 
+    player.setDepth(1);
+    usernameText.setDepth(2);   
+
     this.cursors = this.input.keyboard.createCursorKeys();
+
+
+
+   
+
 
     // ✅ CONNECT SOCKET HERE:
     socket = io();
 
     socket.on("connect", () => {
         console.log("Connected with socket ID:", socket.id);
+    });
+    socket = io();
+
+    socket.on("map_seed", (data) => {
+        mapSeed = data.seed;
+        Math.seedrandom(mapSeed); // 🔐 Use the shared seed
+
+        console.log("Map seed received:", mapSeed);
+        generateMap.call(this); // Generate map with seed
+    });
+    // Player Disconnection Handling
+    socket.on("remove_player", (data) => {
+        const id = data.id;
+        if (otherPlayers[id]) {
+            otherPlayers[id].sprite.destroy();
+            otherPlayers[id].label.destroy();
+            delete otherPlayers[id];
+        }
     });
 
     socket.on("player_data", (data) => {
@@ -84,8 +113,8 @@ function create() {
     });
 
     // Optional: draw grid and border
-    graphics.lineStyle(4, 0xffffff);
-    graphics.strokeRect(0, 0, worldWidth, worldHeight);
+    //graphics.lineStyle(4, 0xffffff);
+    //graphics.strokeRect(0, 0, worldWidth, worldHeight);
 
     for (let x = 0; x < worldWidth; x += 100) {
         graphics.lineStyle(1, 0x444444);
@@ -108,9 +137,25 @@ const game = new Phaser.Game(config);
 
 function preload() {
     this.load.image('player', '/static/game/assets/player.png');
+    this.load.spritesheet('tiles', '/static/game/assets/tilemap_packed.png', {
+        frameWidth: 64,
+        frameHeight: 64
+    });
 }
 
 
+function generateMap() {
+    const tileSize = 64;
+    const tilesPerRow = Math.floor(worldWidth / tileSize);
+    const tilesPerCol = Math.floor(worldHeight / tileSize);
+
+    for (let y = 0; y < tilesPerCol; y++) {
+        for (let x = 0; x < tilesPerRow; x++) {
+            const tileIndex = Phaser.Math.Between(0, 10);
+            this.add.sprite(x * tileSize, y * tileSize, 'tiles', tileIndex).setOrigin(0);
+        }
+    }
+}
 
 
 function update() {
@@ -131,9 +176,13 @@ function update() {
     if (socket && socket.connected) {
         socket.emit("move", { x: player.x, y: player.y });
     }
+
     // Update label position
     usernameText.x = player.x;
     usernameText.y = player.y - 32;
+    if (usernameText && player) {
+        usernameText.setPosition(player.x, player.y - 32);
+    }
 }
 
 

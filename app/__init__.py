@@ -17,7 +17,7 @@ load_dotenv(env_file)
 
 def create_app():
     app = Flask(__name__)
-
+    
     socketio.init_app(app)
 
     app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))  # for signing session cookies
