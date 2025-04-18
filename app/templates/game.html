@@ -5,11 +5,52 @@
     <title>XOR MMO</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/seedrandom"></script>
+    <style>
+        .rps-circle {
+            font-size: 24px;
+            color: grey;
+            margin: 0 5px;
+        }
+        .rps-circle.win { color: green; }
+        .rps-circle.loss { color: red; }
+
+        #rps-popup {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #222;
+            padding: 20px;
+            border-radius: 8px;
+            color: #fff;
+            text-align: center;
+            z-index: 1000;
+        }
+    </style>
 </head>
 <body>
     <script>
         const username = "{{ username }}";  // passed from Flask session
     </script>
+
+    <!-- Rock Paper Scissors Popup UI -->
+    <div id="rps-popup">
+        <h3>Rock Paper Scissors</h3>
+        <div id="rps-status">
+            <span id="rps-circle-1" class="rps-circle">⬤</span>
+            <span id="rps-circle-2" class="rps-circle">⬤</span>
+            <span id="rps-circle-3" class="rps-circle">⬤</span>
+        </div>
+        <div style="margin-top:10px;">
+            <button onclick="selectRPS('rock')">🪨 Rock</button>
+            <button onclick="selectRPS('paper')">📄 Paper</button>
+            <button onclick="selectRPS('scissors')">✂️ Scissors</button>
+        </div>
+        <div id="rps-result" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- Sockets + Game Scripts -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='game/main.js') }}"></script>
 </body>
