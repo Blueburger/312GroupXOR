@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from app import mongo
 from werkzeug.security import generate_password_hash, check_password_hash
 import os, re, uuid, hashlib
+#import tkinter as tk
 
 main = Blueprint('main', __name__)
 
@@ -16,6 +17,26 @@ def game():
     if "username" not in session:
         return redirect(url_for("main.index"))
     return render_template("game.html", username=session["username"])
+
+@main.route("/leaderboard")
+def leaderboard():
+    users_list = mongo.db.users.find({}, {"_id": 0, "username": 1, "wins": 1, "games": 1})
+    users_list = list(users_list)
+    # for user in users_list:
+    #     u = user
+    #     u["losses"] = user["games"] - user["wins"]
+    #     u.pop("games")
+    #     users_dict.append(u)
+    newlist = sorted(users_list, key=lambda d: d['wins'], reverse=True)
+    # root = tk.Tk()
+    # Not sure on how to make this a GUI that's pretty and accessible in game so just gonna make an html page for now
+    print("You did something not useless good job")
+    username = session.get("username")
+    return render_template("leaderboard.html", username=username, users_list=newlist)
+
+
+    
+
 
 @main.route("/pingdb")
 def ping_db():
@@ -55,7 +76,7 @@ def register():
         return "Username exists", 400
 
     hashed_pw = generate_password_hash(password)
-    mongo.db.users.insert_one({"username": username, "password": hashed_pw})
+    mongo.db.users.insert_one({"username": username, "password": hashed_pw, "wins": 0, "games": 0})
     session["username"] = username
     current_app.logger.info(f"{request.remote_addr} register: {username} — success")
     return redirect(url_for("main.index"))
