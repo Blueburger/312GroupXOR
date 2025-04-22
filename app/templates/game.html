@@ -53,5 +53,27 @@
     <!-- Sockets + Game Scripts -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='game/main.js') }}"></script>
+
+    <!-- SCRIPT TO PLAY BACKGROUND MUSIC -->
+    <audio id="bg-music" loop>
+        <source src="{{ url_for('static', filename='/game/music/Calm and Ready.mp3') }}" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const audio = document.getElementById('bg-music');
+            // Try to play as soon as DOM is ready, assuming login was required first
+            audio.play().catch(err => {
+                console.warn("Autoplay blocked, waiting for user interaction...");
+                const tryPlay = () => {
+                    audio.play().then(() => {
+                        console.log("Music started after interaction.");
+                        document.removeEventListener('click', tryPlay);
+                    }).catch(() => {});
+                };
+                document.addEventListener('click', tryPlay);
+            });
+        });
+    </script>
 </body>
 </html>
