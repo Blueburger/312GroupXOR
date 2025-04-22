@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <title>XOR Project - Login</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <script src="{{ url_for('static', filename='game/generatePlain.js') }}"></script>
 </head>
 <body>
+    <canvas id="backgroundCanvas"></canvas> <!-- for background-->
+
     <div class="container">
         {% if username %}
             <h1>Welcome back, {{ username }}!</h1>
@@ -30,5 +34,12 @@
             </form>
         {% endif %}
     </div>
+
+    <script>
+        window.onload = () => {
+            generatePlainsBiome('backgroundCanvas');
+        };
+    </script>
+
 </body>
 </html>
