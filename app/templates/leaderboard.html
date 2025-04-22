@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>XOR Project - Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<header>
+    <div class="container">
+        {% if username %}
+            <h1>Welcome back, {{ username }}!</h1>
+            <a href="/logout">Logout</a>
+            <form action="/game">
+                <button type="submit">Go to Game</button>
+            </form>
+        {% endif %}
+    </div>
+</header>
+<body>
+    <div class="container">
+        <h1> Leaderboard </h1>
+        <table id="leaderboard-table" class="display" style="width: 100%">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Wins</th>
+                    <th>Losses</th>
+                </tr>
+            </thead>
+            {% for item in users_list %}
+            <tr>
+                <td>{{item.username}}</td>
+                <td>{{item.wins}}</td>
+                <td>{{item.games - item.wins}}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</body>
+<footer>
+    <div class="container">
+        <form action="/">
+            <button type="submit">Go Home</button>
+        </form>
+    </div>
+</footer>
+</html>

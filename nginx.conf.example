@@ -1,0 +1,45 @@
+worker_processes  1;
+
+events {
+	worker_connections  1024;
+}
+
+http {
+	server {
+		# allows users to access the site from this URL
+		server_name xor.cse312.dev;
+
+		location / {
+			# keep port as 8080 in development, eventually change this as well as the port in the Dockerfile
+			proxy_pass http://localhost:8080;
+			proxy_http_version 1.1;
+			proxy_set_header Upgrade $http_upgrade;
+			proxy_set_header Connection "Upgrade";
+			proxy_set_header X-Real-IP $remote_addr;
+		}
+		
+		# this code block is automatically inserted by Certbot when running it with the --nginx option
+		# when we deploy/if you want to run this on your own aws instance, remove these lines then run Certbot with --nginx
+		# keeping it here as a reference for what the whole file should look like when deploying
+		listen 443 ssl; # managed by Certbot
+		listen [::]:443 ssl ipv6only=on; # managed by Certbot
+		ssl_certificate /etc/letsencrypt/live/slogin.cse312.dev/fullchain.pem; # managed by Certbot
+		ssl_certificate_key /etc/letsencrypt/live/slogin.cse312.dev/privkey.pem; # managed by Certbot
+		include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+		ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+	} 
+
+	# this whole server block is the redirect from http to https that Certbot automatically inserts
+	# like the lines above with the "managed by Certbot" comments, remove this then run Certbot with --nginx to get it working properly on the group instance/your personal instance
+	server {
+		if ($host = slogin.cse312.dev) {
+			return 301 https://$host$request_uri;
+		} # managed by Certbot
+
+		listen 80 default_server;
+		listen [::]:80 default_server;
+
+		server_name slogin.cse312.dev;
+		return 404; # managed by Certbot
+	}
+}
