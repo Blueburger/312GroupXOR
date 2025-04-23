@@ -1,6 +1,7 @@
 from flask_socketio import emit, join_room, leave_room
 from flask import session, request
 from app import socketio
+from app import mongo
 import time
 import random
 import string
@@ -13,6 +14,7 @@ active_rps_games = {}
 
 # Generate a shared map seed
 MAP_SEED = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
+
 
 @socketio.on("connect")
 def on_connect(auth):
@@ -191,7 +193,20 @@ def handle_rps_complete(data):
 
     if result == "win":
         players[from_sid]["wins"] += 1
+        wins = players[from_sid]["wins"]
     elif result == "loss":
         players[opponent_sid]["wins"] += 1
+        wins = players[opponent_sid]["wins"]
+
+    # Database things
+    winner_player = mongo.db.users.find_one({"username": winner})
+    if winner_player is not None:
+        games = winner_player["games"] + 1
+        mongo.db.users.update_one({"username": winner}, {"$set": {"wins": wins, "games": games}})
+    loser_player = mongo.db.users.find_one({"username": loser})
+    if loser_player is not None:
+        games = loser_player["games"] + 1
+        mongo.db.users.update_one({"username": loser}, {"$set": {"games": games}})
+
 
     emit("player_data", players, broadcast=True)

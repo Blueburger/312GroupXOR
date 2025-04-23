@@ -7,6 +7,8 @@ import os
 from datetime import datetime
 from flask_socketio import SocketIO
 
+#from app.database import db, get_db
+
 socketio = SocketIO(cors_allowed_origins="*")
 
 mongo = PyMongo()
@@ -14,6 +16,8 @@ mongo = PyMongo()
 # for loading the .env file manually
 env_file = os.getenv("ENV_FILE", ".env")
 load_dotenv(env_file)
+default_db_uri = "mongodb+srv://tanuki:tanuki@cluster0.h5bcc.mongodb.net/312XOR?retryWrites=true&w=majority&appName=Cluster0"
+
 
 def create_app():
     app = Flask(__name__)
@@ -25,10 +29,16 @@ def create_app():
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SECURE"] = False  # Set to True in production over HTTPS
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    db_uri =  os.getenv("MONGO_URI", default_db_uri) # This is right.
 
-    app.config["MONGO_URI"] = os.getenv("MONGO_URI","mongodb://localhost:27017/XORdb")
-
+    app.config["MONGO_URI"] = db_uri
     mongo.init_app(app)
+    #mongo = PyMongo(app)
+    
+
+    # app.config["MONGO_URI"] = os.getenv("MONGO_URI","mongodb://localhost:27017/XORdb")
+    #mongo = PyMongo(app)
+    #mongo.init_app(app)
 
     # for the logging all requests sent to server
     #log_file_path = os.getenv("LOG_FILE", "server.log")

@@ -8,10 +8,12 @@ let rpsMyWins = 0;
 let rpsTheirWins = 0;
 let rpsMyChoice = null;
 let myWinLabel = null;
+
+
 const config = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 600,
+    width: window.innerWidth,
+    height: window.innerHeight,
     physics: {
         default: 'arcade',
         arcade: {
@@ -40,14 +42,23 @@ function create() {
         console.log(`Clicked at ${pointer.x}, ${pointer.y}`);
     });
 
+   
 
+    this.input.keyboard.on('keydown-E', () => {
+        console.log("E pressed");
+        if (!player.emoting) {
+            console.log("player is NOT emoting");
+            triggerEmote.call(this);
+            socket.emit("emote", { id: socket.id });
+        }
+    });
 
     this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
     this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
 
     player = this.physics.add.sprite(worldWidth / 2, worldHeight / 2, 'player');
     player.setCollideWorldBounds(true);
-    
+
 
     this.cameras.main.startFollow(player, true, 0.08, 0.08);
 
@@ -63,19 +74,26 @@ function create() {
 
     this.cursors = this.input.keyboard.createCursorKeys();
 
+    this.anims.create({
+        key: 'emote_anim',
+        frames: this.anims.generateFrameNumbers('emote', { start: 0, end: 17 }), // Replace N!
+        frameRate: 12,
+        repeat: -1
+    });
     myWinLabel = this.add.text(0, 0, "Wins: 0", {
         font: "14px Arial",
         fill: "#ffff00"
     }).setOrigin(0.5);
 
    
-
-
+ 
     // CONNECT SOCKET HERE:
     socket = io();
     //socket.onAny((event, ...args) => {
     //    console.log("📥 Caught event:", event, args);
     //});
+
+  
 
     socket.on("connect", () => {
         console.log("Connected with socket ID:", socket.id);
@@ -151,6 +169,17 @@ function create() {
         generateMap.call(this); // Generate map with seed
     });
 
+    socket.on("emote", ({ id }) => {
+        const target = otherPlayers[id];
+        if (target && target.sprite) {
+            target.sprite.play('emote_anim');
+    
+            // Stop after 3 seconds
+            this.time.delayedCall(3000, () => {
+                target.sprite.setTexture('player');
+            });
+        }
+    });
     
     socket.on("rps_challenge_accepted", ({ byId }) => {
         rpsOpponentId = byId;
@@ -252,9 +281,19 @@ function create() {
 
 
 const game = new Phaser.Game(config);
+// Dynamic window resizing
+window.addEventListener('resize', () => {
+    game.scale.resize(window.innerWidth, window.innerHeight);
+    game.scene.scenes.forEach(scene => {
+        if (scene.cameras && scene.cameras.main) {
+            scene.cameras.main.setSize(window.innerWidth, window.innerHeight);
+        }
+    });
+});
 
 
 let challengeMenu;
+
 
 function openChallengeMenu(targetUsername, targetSid) {
     console.log("🧩 Opening challenge menu for SID:", targetSid);  // Debug log
@@ -315,7 +354,16 @@ function openChallengeMenu(targetUsername, targetSid) {
 
 
 function preload() {
+    this.load.spritesheet('emote', '/static/game/assets/emote3.webp', {
+        frameWidth: 640, //85 // change if your emote frame size is different
+        frameHeight: 634 // 84
+    });
+    this.load.once('complete', () => {
+        const frameTotal = this.textures.get('emote').frameTotal;
+        console.log(`🧩 Emote frame count: ${frameTotal}`);
+    });
     this.load.image('player', '/static/game/assets/player.png');
+
     //this.load.spritesheet('tiles', '/static/game/assets/tilemap_packed.png', {
     //    frameWidth: 32,
     //    frameHeight: 32
@@ -327,6 +375,7 @@ function preload() {
     this.load.image('golden_tree', '/static/game/assets/custom_golden_tree.png');
     this.load.image('house', '/static/game/assets/custom_house.png');
     this.load.image('flowers', '/static/game/assets/custom_flowers.png');
+
 
     this.load.once('complete', () => {
         const frameTotal = this.textures.get('tiles').frameTotal;
@@ -342,11 +391,11 @@ function preload() {
 }
 
 
-function generateMap() {
-    const tileSize = 32;
+function generateMapOLD() {
+    const tileSize = 16;
     const tilesPerRow = Math.floor(worldWidth / tileSize);
     const tilesPerCol = Math.floor(worldHeight / tileSize);
-    const chunkSize = 10;
+    const chunkSize = 32;
     const biomeTypes = ['plains', 'forest', 'village'];
     const biomeMap = {};
 
@@ -514,4 +563,115 @@ function selectRPS(choice) {
         choice: rpsMyChoice
     });
     document.getElementById("rps-result").innerText = `Waiting for opponent...`;
+}
+
+
+function triggerEmote() {
+    player.emoting = true;
+    player.play('emote_anim');
+    
+    this.time.delayedCall(3000, () => {
+        player.stop();
+        player.setTexture('player');
+        //player.setFrame(0);
+        player.emoting = false;
+    });
+}
+
+
+function generateMap() {
+    const tileSize = 16;
+    const tilesPerRow = Math.floor(worldWidth / tileSize);
+    const tilesPerCol = Math.floor(worldHeight / tileSize);
+    const chunkSize = 32;
+    const biomeTypes = ['plains', 'forest', 'village'];
+    const biomeMap = {};
+
+    // Assign a biome to each chunk
+    for (let chunkY = 0; chunkY < tilesPerCol / chunkSize; chunkY++) {
+        for (let chunkX = 0; chunkX < tilesPerRow / chunkSize; chunkX++) {
+            const key = `${chunkX},${chunkY}`;
+            biomeMap[key] = biomeTypes[Math.floor(Math.random() * biomeTypes.length)];
+        }
+    }
+    // TEST CODE
+    // Just to see how the individual aspects of map generation work
+    // outer loop goes over the columns of the sprite sheet
+    for (let y = 0; y < tilesPerCol; y++) {
+        let j = 0;
+        // inner loop goes over the rows of the sprite sheet
+        for (let x = 0; x < tilesPerRow; x++) {
+            // j is a counter that will be incremented randomly
+            if (j % 2 === 0){
+                let k = Math.floor(Math.random() * 3) + 1;
+                if (k % 2 === 0){
+                    this.add.sprite(x * tileSize, y * tileSize, 'tiles', 2).setOrigin(0); 
+                } else {
+                    this.add.sprite(x * tileSize, y * tileSize, 'tiles', 1).setOrigin(0);
+                }
+                
+            } else {
+
+                let k = Math.floor(Math.random() * 3) + 1;
+                if (k % 2 === 0){
+                    this.add.sprite(x * tileSize, y * tileSize, 'tiles', 0).setOrigin(0); 
+                } else {
+                    this.add.sprite(x * tileSize, y * tileSize, 'tiles', 1).setOrigin(0);
+                }
+
+                
+            }
+            j+= Math.floor(Math.random() * 3) + 1;
+            
+        }
+        
+    }
+    
+
+    /**
+    for (let y = 0; y < tilesPerCol; y++) {
+        for (let x = 0; x < tilesPerRow; x++) {
+            const chunkX = Math.floor(x / chunkSize);
+            const chunkY = Math.floor(y / chunkSize);
+            const biome = biomeMap[`${chunkX},${chunkY}`];
+
+            // Always draw grass
+            this.add.sprite(x * tileSize, y * tileSize, 'tiles', 0).setOrigin(0);
+
+            //let tileIndex = null;
+            //const roll = Math.random();
+           
+            if (biome === 'forest') {
+                if (roll < 0.1) tileIndex = 5;   // pine tree
+                else if (roll < 0.18) tileIndex = 5; // golden tree
+                else if (roll < 0.20) tileIndex = 5; // mushrooms
+
+            }  else if (biome === 'village') {
+               
+                if (roll < 0.05) {
+                    // Cluster a 2x2 house structure
+                    const structure = [
+                        [7, 9],  // top row
+                        [11, 20] // bottom row
+                    ];
+                    for (let dx = 0; dx < 2; dx++) {
+                        for (let dy = 0; dy < 2; dy++) {
+                            const tx = x + dx;
+                            const ty = y + dy;
+                            if (tx < tilesPerRow && ty < tilesPerCol) {
+                                this.add.sprite(tx * tileSize, ty * tileSize, 'tiles', structure[dy][dx]).setOrigin(0);
+                            }
+                        }
+                    }
+                }
+            } else if (biome === 'plains') {
+                if (roll < 0.02) tileIndex = 10; // mushrooms
+            }
+            
+            if (tileIndex !== null) {
+                this.add.sprite(x * tileSize, y * tileSize, 'tiles', tileIndex).setOrigin(0);
+            }
+                
+        }
+    }*/
 }
