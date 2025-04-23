@@ -364,10 +364,18 @@ function preload() {
     });
     this.load.image('player', '/static/game/assets/player.png');
 
-    this.load.spritesheet('tiles', '/static/game/assets/tilemap_packed.png', {
-        frameWidth: 16,
-        frameHeight: 16
-    });
+    //this.load.spritesheet('tiles', '/static/game/assets/tilemap_packed.png', {
+    //    frameWidth: 32,
+    //    frameHeight: 32
+    //});
+    this.load.image('tiles', '/static/game/assets/custom_grass.png');
+
+    this.load.image('mushrooms', '/static/game/assets/custom_mushroom.png');
+    this.load.image('tree', '/static/game/assets/custom_tree.png');
+    this.load.image('golden_tree', '/static/game/assets/custom_golden_tree.png');
+    this.load.image('house', '/static/game/assets/custom_house.png');
+    this.load.image('flowers', '/static/game/assets/custom_flowers.png');
+
 
     this.load.once('complete', () => {
         const frameTotal = this.textures.get('tiles').frameTotal;
@@ -391,6 +399,9 @@ function generateMapOLD() {
     const biomeTypes = ['plains', 'forest', 'village'];
     const biomeMap = {};
 
+    const occupied = new Set(); // Track used tile positions for houses
+
+
     // Assign a biome to each chunk
     for (let chunkY = 0; chunkY < tilesPerCol / chunkSize; chunkY++) {
         for (let chunkX = 0; chunkX < tilesPerRow / chunkSize; chunkX++) {
@@ -406,7 +417,8 @@ function generateMapOLD() {
             const biome = biomeMap[`${chunkX},${chunkY}`];
 
             // Always draw grass
-            this.add.sprite(x * tileSize, y * tileSize, 'tiles', 0).setOrigin(0);
+            //this.add.sprite(x * tileSize, y * tileSize, 'tiles', 0).setOrigin(0);
+            this.add.sprite(x * tileSize, y * tileSize, 'tiles').setOrigin(0);
 
             let tileIndex = null;
             const roll = Math.random();
@@ -414,31 +426,53 @@ function generateMapOLD() {
             if (biome === 'forest') {
                 if (roll < 0.1) tileIndex = 4;   // pine tree
                 else if (roll < 0.18) tileIndex = 5; // golden tree
-                else if (roll < 0.20) tileIndex = 7; // mushrooms
+                else if (roll < 0.30) tileIndex = 7; // mushrooms
+                else if (roll < 0.45) tileIndex = 8 //flowers
 
             } else if (biome === 'village') {
                 if (roll < 0.05) {
-                    // Cluster a 2x2 house structure
-                    const structure = [
-                        [8, 9],  // top row
-                        [10, 11] // bottom row
+                    const houseTiles = [
+                        `${x},${y}`,
+                        `${x+1},${y}`,
+                        `${x},${y+1}`,
+                        `${x+1},${y+1}`
                     ];
-                    for (let dx = 0; dx < 2; dx++) {
-                        for (let dy = 0; dy < 2; dy++) {
-                            const tx = x + dx;
-                            const ty = y + dy;
-                            if (tx < tilesPerRow && ty < tilesPerCol) {
-                                this.add.sprite(tx * tileSize, ty * tileSize, 'tiles', structure[dy][dx]).setOrigin(0);
-                            }
-                        }
+                
+                    const overlaps = houseTiles.some(pos => occupied.has(pos));
+                
+                    if (!overlaps && x < tilesPerRow - 1 && y < tilesPerCol - 1) {
+                        this.add.sprite((x-1) * tileSize, (y-1) * tileSize, 'house')
+                            .setOrigin(0)
+                            .setDisplaySize(tileSize * 2, tileSize * 2); // <- scale to 64x64
+                        houseTiles.forEach(pos => occupied.add(pos));
                     }
                 }
+                else if (roll < 0.3){
+                    tileIndex = 8 //flowers
+                }
             } else if (biome === 'plains') {
-                if (roll < 0.02) tileIndex = 7; // mushrooms
+                if (roll < 0.1) tileIndex = 7; // mushrooms
+                else if (roll < 0.3) tileIndex = 8;
             }
 
             if (tileIndex !== null) {
-                this.add.sprite(x * tileSize, y * tileSize, 'tiles', tileIndex).setOrigin(0);
+
+                if (tileIndex == 7){
+                    this.add.sprite(x * tileSize, y * tileSize, 'mushrooms').setOrigin(0)
+                }
+                else if (tileIndex == 4){
+                    this.add.sprite(x * tileSize, (y - 1) * tileSize, 'tree').setOrigin(0, 0);
+                }
+                else if (tileIndex == 5){
+                    this.add.sprite(x * tileSize, (y - 1) * tileSize, 'golden_tree').setOrigin(0, 0);
+                }
+                else if (tileIndex == 8){
+                    this.add.sprite(x * tileSize, y * tileSize, 'flowers').setOrigin(0)
+                }
+                else{
+                    this.add.sprite(x * tileSize, y * tileSize, 'tiles', tileIndex).setOrigin(0);
+                }
+                
             }
         }
     }

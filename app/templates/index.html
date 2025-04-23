@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <title>XOR Project - Login</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <script src="{{ url_for('static', filename='game/generatePlain.js') }}"></script>
 </head>
 <body>
+    <canvas id="backgroundCanvas"></canvas> <!-- for background-->
+
     <div class="container">
         {% if username %}
             <h1>Welcome back, {{ username }}!</h1>
@@ -14,7 +18,7 @@
                 <button type="submit">Go to Game</button>
             </form>
         {% else %}
-            <h1>Welcome to XOR Project</h1>
+            <h1>Welcome to <img src="{{ url_for('static', filename='game/assets/xor_logo.png') }}" alt="XOR" class="inline-sprite"> Project</h1>
             <form action="/login" method="POST">
                 <input type="text" name="username" placeholder="Username" required />
                 <input type="password" name="password" placeholder="Password" required />
@@ -30,10 +34,20 @@
             </form>
         {% endif %}
     </div>
+
+
+    <script>
+        window.onload = () => {
+            generatePlainsBiome('backgroundCanvas');
+        };
+    </script>
+
+
     <div class="container">
         <form action="/leaderboard">
             <button type="submit">Leaderboard</button>
         </form>
     </div>
+
 </body>
 </html>
