@@ -11,6 +11,8 @@ let myWinLabel = null;
 let challengePrompt = null;
 let leaderboardContainer = null;
 let leaderboardText = null;
+let touchPoint = null;
+let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 
 const config = {
@@ -41,11 +43,30 @@ function create() {
 
     this.input.enabled = true;  // Add this at the beginning of create()
     
-    this.input.on('pointerdown', (pointer) => {
-        console.log(`Clicked at ${pointer.x}, ${pointer.y}`);
-    });
+    // Add touch controls for mobile
+    if (isMobile) {
+        // Create a touch indicator
+        touchPoint = this.add.circle(0, 0, 20, 0xff0000, 0.3);
+        touchPoint.setVisible(false);
+        touchPoint.setScrollFactor(0);
+        touchPoint.setDepth(1000);
 
-   
+        // Handle touch events
+        this.input.on('pointerdown', (pointer) => {
+            touchPoint.setPosition(pointer.x, pointer.y);
+            touchPoint.setVisible(true);
+        });
+
+        this.input.on('pointermove', (pointer) => {
+            if (touchPoint.visible) {
+                touchPoint.setPosition(pointer.x, pointer.y);
+            }
+        });
+
+        this.input.on('pointerup', () => {
+            touchPoint.setVisible(false);
+        });
+    }
 
     this.input.keyboard.on('keydown-E', () => {
         console.log("E pressed");
@@ -655,17 +676,40 @@ function generateMapOLD() {
 function update() {
     player.setVelocity(0);
 
-    if (this.cursors.left.isDown) {
-        player.setVelocityX(-200);
-    } else if (this.cursors.right.isDown) {
-        player.setVelocityX(200);
+    if (isMobile && touchPoint && touchPoint.visible) {
+        // Convert touch coordinates to world coordinates
+        const worldPoint = this.cameras.main.getWorldPoint(touchPoint.x, touchPoint.y);
+        
+        // Calculate direction vector from player to touch point
+        const dx = worldPoint.x - player.x;
+        const dy = worldPoint.y - player.y;
+        
+        // Calculate distance
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Normalize and apply velocity if there's significant distance
+        if (distance > 5) {
+            const speed = 200;
+            player.setVelocity(
+                (dx / distance) * speed,
+                (dy / distance) * speed
+            );
+        }
+    } else {
+        // Keyboard controls for non-mobile
+        if (this.cursors.left.isDown) {
+            player.setVelocityX(-200);
+        } else if (this.cursors.right.isDown) {
+            player.setVelocityX(200);
+        }
+
+        if (this.cursors.up.isDown) {
+            player.setVelocityY(-200);
+        } else if (this.cursors.down.isDown) {
+            player.setVelocityY(200);
+        }
     }
 
-    if (this.cursors.up.isDown) {
-        player.setVelocityY(-200);
-    } else if (this.cursors.down.isDown) {
-        player.setVelocityY(200);
-    }
     // Send position to server
     if (socket && socket.connected) {
         socket.emit("move", { x: player.x, y: player.y });
