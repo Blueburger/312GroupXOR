@@ -177,9 +177,18 @@ def handle_rps_complete(data):
     result = data.get("result")
     key = tuple(sorted([from_sid, opponent_sid]))
 
-    if key in active_rps_games:
-        del active_rps_games[key]
+    # Check if the game is already completed
+    if key not in active_rps_games:
+        print(f"⚠️ Game already completed for {from_sid} and {opponent_sid}")
+        # Still emit the complete event to both players to ensure UI is updated
+        emit("rps_complete", to=from_sid)
+        emit("rps_complete", to=opponent_sid)
+        return
 
+    # Remove the game from active games to prevent duplicate processing
+    del active_rps_games[key]
+
+    # Emit complete event to both players
     emit("rps_complete", to=from_sid)
     emit("rps_complete", to=opponent_sid)
 
@@ -201,12 +210,11 @@ def handle_rps_complete(data):
     # Database things
     winner_player = mongo.db.users.find_one({"username": winner})
     if winner_player is not None:
-        games = winner_player["games"] + 1
+        games = winner_player.get("games", 0) + 1
         mongo.db.users.update_one({"username": winner}, {"$set": {"wins": wins, "games": games}})
     loser_player = mongo.db.users.find_one({"username": loser})
     if loser_player is not None:
-        games = loser_player["games"] + 1
+        games = loser_player.get("games", 0) + 1
         mongo.db.users.update_one({"username": loser}, {"$set": {"games": games}})
-
 
     emit("player_data", players, broadcast=True)

@@ -8,6 +8,7 @@ let rpsMyWins = 0;
 let rpsTheirWins = 0;
 let rpsMyChoice = null;
 let myWinLabel = null;
+let challengePrompt = null;
 
 
 const config = {
@@ -199,63 +200,178 @@ function create() {
         }
     
         console.log("🎮 Received challenge from", fromId, fromName);
-        const accept = confirm(`${fromName} challenged you to Rock Paper Scissors!`);
-        if (accept) {
+        
+        // Create Phaser UI for challenge prompt
+        const scene = game.scene.keys.default;
+        if (challengePrompt) challengePrompt.destroy();
+
+        const cam = scene.cameras.main;
+        const centerX = cam.scrollX + cam.width / 2;
+        const centerY = cam.scrollY + cam.height / 2;
+
+        challengePrompt = scene.add.container(centerX, centerY).setDepth(9999);
+
+        // Background
+        const bg = scene.add.rectangle(0, 0, 300, 200, 0x222222, 0.9).setOrigin(0.5);
+        challengePrompt.add(bg);
+
+        // Title
+        const title = scene.add.text(0, -60, "Challenge Received!", {
+            font: '20px Arial',
+            fill: '#ffffff',
+            align: 'center'
+        }).setOrigin(0.5);
+        challengePrompt.add(title);
+
+        // Message
+        const message = scene.add.text(0, -20, `${fromName} challenged you to Rock Paper Scissors!`, {
+            font: '16px Arial',
+            fill: '#ffffff',
+            align: 'center',
+            wordWrap: { width: 250 }
+        }).setOrigin(0.5);
+        challengePrompt.add(message);
+
+        // Accept button
+        const acceptButton = scene.add.text(0, 30, "Accept", {
+            font: '18px Arial',
+            fill: '#00ff00',
+            backgroundColor: '#000',
+            padding: { x: 10, y: 5 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        
+        acceptButton.on('pointerdown', () => {
             rpsOpponentId = fromId;
             rpsInProgress = true;
             socket.emit("rps_accept", { from: fromId });
             showRPSPopup();
-        } else {
+            challengePrompt.destroy();
+            challengePrompt = null;
+        });
+        
+        challengePrompt.add(acceptButton);
+
+        // Decline button
+        const declineButton = scene.add.text(0, 70, "Decline", {
+            font: '18px Arial',
+            fill: '#ff0000',
+            backgroundColor: '#000',
+            padding: { x: 10, y: 5 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        
+        declineButton.on('pointerdown', () => {
             socket.emit("rps_decline", { from: fromId });
             console.log("who declined: ", fromId);
-        }
+            challengePrompt.destroy();
+            challengePrompt = null;
+        });
+        
+        challengePrompt.add(declineButton);
+        
+        scene.add.existing(challengePrompt);
     });
     
-    socket.on("rps_round_result", ({ you, opponent }) => {
+    socket.on("rps_round_result", ({ you, opponent, roundId }) => {
         if (!rpsInProgress) return;
-    
-        document.getElementById("rps-result").innerText = `You chose ${you}, opponent chose ${opponent}`;
-    
+
+        // Generate a unique round ID if not provided
+        const currentRoundId = roundId || `${you}-${opponent}-${Date.now()}`;
+        
+        // Check if this round has already been processed
+        if (rpsGame.processedRounds.has(currentRoundId)) {
+            console.log(`Skipping duplicate round: ${currentRoundId}`);
+            return;
+        }
+        
+        // Mark this round as processed
+        rpsGame.processedRounds.add(currentRoundId);
+        
+        console.log(`RPS round result: You chose ${you}, opponent chose ${opponent}, round ID: ${currentRoundId}`);
+
+        if (rpsGame.resultText) {
+            rpsGame.resultText.setText(`You chose ${you}, opponent chose ${opponent}`);
+        }
+
         let outcome = "draw";
         if (you === opponent) {
             outcome = "draw";
+            if (rpsGame.resultText) {
+                rpsGame.resultText.setText(`You chose ${you}, opponent chose ${opponent}. It's a draw!`);
+            }
         } else if (
             (you === "rock" && opponent === "scissors") ||
             (you === "paper" && opponent === "rock") ||
             (you === "scissors" && opponent === "paper")
         ) {
             outcome = "win";
-            const index = rpsMyWins + rpsTheirWins + 1;
-            document.getElementById(`rps-circle-${index}`).classList.add("win");
+            const index = rpsMyWins + rpsTheirWins;
+            if (rpsGame.circles && rpsGame.circles[index]) {
+                rpsGame.circles[index].setFillStyle(0x00ff00); // Green for win
+            }
+            if (rpsGame.resultText) {
+                rpsGame.resultText.setText(`You chose ${you}, opponent chose ${opponent}. You win this round!`);
+            }
             rpsMyWins++;
         } else {
             outcome = "loss";
-            const index = rpsMyWins + rpsTheirWins + 1;
-            document.getElementById(`rps-circle-${index}`).classList.add("loss");
+            const index = rpsMyWins + rpsTheirWins;
+            if (rpsGame.circles && rpsGame.circles[index]) {
+                rpsGame.circles[index].setFillStyle(0xff0000); // Red for loss
+            }
+            if (rpsGame.resultText) {
+                rpsGame.resultText.setText(`You chose ${you}, opponent chose ${opponent}. You lose this round.`);
+            }
             rpsTheirWins++;
         }
-    
+
+        // Reset button states
+        if (rpsGame.choiceButtons) {
+            rpsGame.choiceButtons.list.forEach(button => {
+                button.list[0].setFillStyle(0x444444);
+                button.list[0].setAlpha(1);
+            });
+        }
+
         rpsMyChoice = null;
-    
-        if (rpsMyWins === 2 || rpsTheirWins === 2) {
-            setTimeout(() => {
-                console.log("✅ Emitting rps_complete with opponentId:", rpsOpponentId);
-                hideRPSPopup();
-                socket.emit("rps_complete", {
-                    opponentId: rpsOpponentId,
-                    result: rpsMyWins === 2 ? "win" : "loss"
-                });
-            }, 1500);
+        rpsGame.locked = false;
+
+        if ((rpsMyWins === 2 || rpsTheirWins === 2) && !rpsGame.gameComplete) {
+            rpsGame.gameComplete = true;
+            
+            // Show final result
+            if (rpsGame.resultText) {
+                const finalResult = rpsMyWins === 2 ? "You won the game!" : "You lost the game.";
+                rpsGame.resultText.setText(`Game over! ${finalResult}`);
+            }
+            
+            // Only the winner should send the rps_complete event
+            // This ensures the win is only counted once
+            if (rpsMyWins === 2) {
+                setTimeout(() => {
+                    console.log("✅ Emitting rps_complete with opponentId:", rpsOpponentId);
+                    hideRPSPopup();
+                    socket.emit("rps_complete", {
+                        opponentId: rpsOpponentId,
+                        result: "win"
+                    });
+                }, 2000);
+            } else {
+                // If the player lost, just hide the popup after a delay
+                setTimeout(() => {
+                    hideRPSPopup();
+                }, 2000);
+            }
         }
     });
     
-    // ✅ Reset flags after game complete
     socket.on("rps_complete", () => {
         rpsInProgress = false;
         rpsOpponentId = null;
         rpsMyWins = 0;
         rpsTheirWins = 0;
         rpsMyChoice = null;
+        rpsGame.gameComplete = false;
+        rpsGame.processedRounds.clear(); // Clear processed rounds when game is complete
     });
 
 
@@ -513,56 +629,207 @@ function update() {
 let rpsGame = {
     rounds: [],
     opponentId: null,
-    locked: false
+    locked: false,
+    ui: null,
+    resultText: null,
+    choiceButtons: null,
+    circles: [],
+    gameComplete: false,
+    processedRounds: new Set() // Track processed rounds to prevent duplicates
 };
 
 function openRPSPopup(opponentId) {
     rpsGame.rounds = [];
     rpsGame.opponentId = opponentId;
     rpsGame.locked = false;
+    rpsGame.gameComplete = false;
 
-    document.getElementById("rps-result").textContent = "";
-    [...document.querySelectorAll(".rps-circle")].forEach(c => {
-        c.classList.remove("win", "loss");
+    // Create Phaser UI for RPS game
+    const scene = game.scene.keys.default;
+    if (rpsGame.ui) rpsGame.ui.destroy();
+
+    const cam = scene.cameras.main;
+    const centerX = cam.scrollX + cam.width / 2;
+    const centerY = cam.scrollY + cam.height / 2;
+
+    // Create container for RPS UI
+    rpsGame.ui = scene.add.container(centerX, centerY).setDepth(9999);
+
+    // Background
+    const bg = scene.add.rectangle(0, 0, 400, 300, 0x222222, 0.9).setOrigin(0.5);
+    rpsGame.ui.add(bg);
+
+    // Title
+    const title = scene.add.text(0, -120, "Rock Paper Scissors", {
+        font: '24px Arial',
+        fill: '#ffffff',
+        align: 'center'
+    }).setOrigin(0.5);
+    rpsGame.ui.add(title);
+
+    // Result text
+    rpsGame.resultText = scene.add.text(0, -80, "", {
+        font: '18px Arial',
+        fill: '#ffffff',
+        align: 'center'
+    }).setOrigin(0.5);
+    rpsGame.ui.add(rpsGame.resultText);
+
+    // Choice buttons
+    rpsGame.choiceButtons = scene.add.container(0, 0);
+    
+    const choices = ["rock", "paper", "scissors"];
+    const buttonWidth = 100;
+    const spacing = 20;
+    const totalWidth = (buttonWidth * 3) + (spacing * 2);
+    const startX = -totalWidth / 2 + buttonWidth / 2;
+
+    choices.forEach((choice, index) => {
+        const x = startX + (index * (buttonWidth + spacing));
+        
+        // Create a container for the button
+        const button = scene.add.container(x, 0);
+        
+        // Add background rectangle
+        const buttonBg = scene.add.rectangle(0, 0, buttonWidth, 50, 0x444444).setOrigin(0.5);
+        
+        // Add text
+        const buttonText = scene.add.text(0, 0, choice.charAt(0).toUpperCase() + choice.slice(1), {
+            font: '18px Arial',
+            fill: '#ffffff'
+        }).setOrigin(0.5);
+        
+        // Add elements to the button container
+        button.add([buttonBg, buttonText]);
+        
+        // Make the entire button interactive
+        button.setSize(buttonWidth, 50);
+        button.setInteractive({ useHandCursor: true });
+        
+        // Add pointerdown event
+        button.on('pointerdown', () => {
+            if (!rpsGame.locked) {
+                console.log(`Selected ${choice}`);
+                selectRPS(choice);
+            }
+        });
+        
+        // Add hover effect
+        button.on('pointerover', () => {
+            buttonBg.setFillStyle(0x666666);
+        });
+        
+        button.on('pointerout', () => {
+            buttonBg.setFillStyle(0x444444);
+        });
+        
+        // Add to the choice buttons container
+        rpsGame.choiceButtons.add(button);
     });
+    
+    rpsGame.ui.add(rpsGame.choiceButtons);
 
-    document.getElementById("rps-popup").style.display = "block";
+    // Win/loss circles
+    rpsGame.circles = [];
+    const circleRadius = 15;
+    const circleSpacing = 40;
+    const circlesStartX = -circleSpacing;
+    
+    for (let i = 0; i < 3; i++) {
+        const x = circlesStartX + (i * circleSpacing);
+        const circle = scene.add.circle(x, 80, circleRadius, 0x888888);
+        rpsGame.circles.push(circle);
+        rpsGame.ui.add(circle);
+    }
+
+    // Close button
+    const closeButton = scene.add.text(0, 120, "Close", {
+        font: '18px Arial',
+        fill: '#ff0000',
+        backgroundColor: '#000',
+        padding: { x: 10, y: 5 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    
+    closeButton.on('pointerdown', () => {
+        closeRPSPopup();
+    });
+    
+    rpsGame.ui.add(closeButton);
+    
+    scene.add.existing(rpsGame.ui);
 }
 
 function closeRPSPopup() {
-    document.getElementById("rps-popup").style.display = "none";
+    if (rpsGame.ui) {
+        rpsGame.ui.destroy();
+        rpsGame.ui = null;
+    }
 }
 
-
-
 function showRPSPopup() {
-    document.getElementById("rps-popup").style.display = "block";
-    resetRPSDisplay();
+    if (!rpsGame.ui) {
+        openRPSPopup(rpsGame.opponentId);
+    }
 }
 
 function hideRPSPopup() {
-    document.getElementById("rps-popup").style.display = "none";
+    closeRPSPopup();
 }
 
 function resetRPSDisplay() {
     rpsMyWins = 0;
     rpsTheirWins = 0;
     rpsMyChoice = null;
-    for (let i = 1; i <= 3; i++) {
-        const circle = document.getElementById(`rps-circle-${i}`);
-        circle.className = "rps-circle";
+    
+    if (rpsGame.circles) {
+        rpsGame.circles.forEach(circle => {
+            circle.setFillStyle(0x888888);
+        });
     }
-    document.getElementById("rps-result").innerText = "";
+    
+    if (rpsGame.resultText) {
+        rpsGame.resultText.setText("");
+    }
 }
 
 function selectRPS(choice) {
-    if (!rpsInProgress || rpsMyChoice) return;
+    if (!rpsInProgress || rpsMyChoice || rpsGame.locked) {
+        console.log("Cannot select: game not in progress, choice already made, or game locked");
+        return;
+    }
+    
+    console.log(`Making RPS choice: ${choice}`);
     rpsMyChoice = choice;
+    rpsGame.locked = true;
+    
+    // Generate a unique round ID
+    const roundId = `${choice}-${Date.now()}`;
+    
+    // Visual feedback for selection
+    if (rpsGame.choiceButtons) {
+        rpsGame.choiceButtons.list.forEach(button => {
+            const buttonText = button.list[1];
+            if (buttonText.text.toLowerCase() === choice) {
+                // Highlight selected choice
+                button.list[0].setFillStyle(0x00aa00);
+            } else {
+                // Dim other choices
+                button.list[0].setFillStyle(0x333333);
+                button.list[0].setAlpha(0.5);
+            }
+        });
+    }
+    
+    if (rpsGame.resultText) {
+        rpsGame.resultText.setText(`You chose ${choice}. Waiting for opponent...`);
+    }
+    
+    // Send choice to server with round ID
     socket.emit("rps_choice", {
         to: rpsOpponentId,
-        choice: rpsMyChoice
+        choice: rpsMyChoice,
+        roundId: roundId
     });
-    document.getElementById("rps-result").innerText = `Waiting for opponent...`;
 }
 
 
