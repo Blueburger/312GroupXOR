@@ -144,9 +144,11 @@ function create() {
                 // Only allow opening challenge menu if this is not the local player
                 if (id !== socket.id) {
                     sprite.on("pointerdown", () => {
-                        if (!rpsInProgress && !challengeMenu) {
+                        if (!rpsInProgress && !challengeMenu && !rpsGame.gameComplete) {
                             console.log(`[RPS] Opening challenge menu for ${username} (SID: ${id})`);
                             openChallengeMenu(username, id);
+                        } else if (rpsInProgress || rpsGame.gameComplete) {
+                            console.log("Cannot challenge: game in progress or just completed");
                         }
                     });
                 }
@@ -351,8 +353,8 @@ function create() {
                     console.log("✅ Emitting rps_complete with opponentId:", rpsOpponentId);
                     hideRPSPopup();
                     socket.emit("rps_complete", {
-                        opponentId: rpsOpponentId,
-                        result: "win"
+                        winner: socket.id,
+                        loser: rpsOpponentId
                     });
                 }, 2000);
             } else {
@@ -365,13 +367,21 @@ function create() {
     });
     
     socket.on("rps_complete", () => {
+        // Reset all game state
         rpsInProgress = false;
         rpsOpponentId = null;
         rpsMyWins = 0;
         rpsTheirWins = 0;
         rpsMyChoice = null;
         rpsGame.gameComplete = false;
-        rpsGame.processedRounds.clear(); // Clear processed rounds when game is complete
+        rpsGame.processedRounds.clear(); // Clear processed rounds
+        rpsGame.locked = false; // Reset the lock
+        
+        // Clean up UI if it exists
+        if (rpsGame.ui) {
+            rpsGame.ui.destroy();
+            rpsGame.ui = null;
+        }
     });
 
 

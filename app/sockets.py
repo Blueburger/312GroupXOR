@@ -32,11 +32,15 @@ def on_connect(auth):
     spawn_x = random.randint(100, 1800)
     spawn_y = random.randint(100, 1800)
 
+    # Load player's wins from the database
+    user_data = mongo.db.users.find_one({"username": username})
+    wins = user_data.get("wins", 0) if user_data else 0
+
     players[sid] = {
     "username": username,
     "x": spawn_x,
     "y": spawn_y,
-    "wins": 0  # 🟢 Track wins
+    "wins": wins  # Load wins from database
     }
 
     # Send shared map seed
@@ -167,54 +171,44 @@ def handle_rps_choice(data):
 
 @socketio.on("rps_complete")
 def handle_rps_complete(data):
-    from_sid = request.sid
-    opponent_sid = data.get("opponentId")
-
-    if not opponent_sid or opponent_sid not in players:
-        print("⚠️ Invalid or missing opponent SID:", opponent_sid)
-        return  # Skip rest to avoid crashing
-
-    result = data.get("result")
-    key = tuple(sorted([from_sid, opponent_sid]))
-
-    # Check if the game is already completed
-    if key not in active_rps_games:
-        print(f"⚠️ Game already completed for {from_sid} and {opponent_sid}")
-        # Still emit the complete event to both players to ensure UI is updated
-        emit("rps_complete", to=from_sid)
-        emit("rps_complete", to=opponent_sid)
+    sid = request.sid
+    if sid not in players:
         return
 
-    # Remove the game from active games to prevent duplicate processing
-    del active_rps_games[key]
+    winner_sid = data.get("winner")
+    if not winner_sid or winner_sid not in players:
+        return
 
-    # Emit complete event to both players
-    emit("rps_complete", to=from_sid)
-    emit("rps_complete", to=opponent_sid)
+    # Update wins in memory
+    players[winner_sid]["wins"] += 1
 
-    # Logging and win tracking
-    try:
-        winner = players[from_sid]['username'] if result == "win" else players[opponent_sid]['username']
-        loser = players[opponent_sid]['username'] if result == "win" else players[from_sid]['username']
-        print(f"{winner} won against {loser}")
-    except:
-        print("⚠️ Could not resolve usernames for result log.")
+    # Update wins in database
+    winner_username = players[winner_sid]["username"]
+    mongo.db.users.update_one(
+        {"username": winner_username},
+        {"$inc": {"wins": 1, "games": 1}},
+        upsert=True
+    )
 
-    if result == "win":
-        players[from_sid]["wins"] += 1
-        wins = players[from_sid]["wins"]
-    elif result == "loss":
-        players[opponent_sid]["wins"] += 1
-        wins = players[opponent_sid]["wins"]
+    # Update games played for both players
+    loser_sid = data.get("loser")
+    if loser_sid and loser_sid in players:
+        loser_username = players[loser_sid]["username"]
+        mongo.db.users.update_one(
+            {"username": loser_username},
+            {"$inc": {"games": 1}},
+            upsert=True
+        )
 
-    # Database things
-    winner_player = mongo.db.users.find_one({"username": winner})
-    if winner_player is not None:
-        games = winner_player.get("games", 0) + 1
-        mongo.db.users.update_one({"username": winner}, {"$set": {"wins": wins, "games": games}})
-    loser_player = mongo.db.users.find_one({"username": loser})
-    if loser_player is not None:
-        games = loser_player.get("games", 0) + 1
-        mongo.db.users.update_one({"username": loser}, {"$set": {"games": games}})
+    # Clean up the game state
+    key = tuple(sorted([winner_sid, loser_sid]))
+    if key in active_rps_games:
+        del active_rps_games[key]
 
+    # Broadcast updated player data
     emit("player_data", players, broadcast=True)
+    
+    # Notify both players that the game is complete
+    emit("rps_complete", to=winner_sid)
+    if loser_sid:
+        emit("rps_complete", to=loser_sid)
