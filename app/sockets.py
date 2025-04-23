@@ -16,6 +16,17 @@ active_rps_games = {}
 MAP_SEED = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
 
 
+def get_connected_players_leaderboard():
+    leaderboard_data = []
+    for sid, player_data in players.items():
+        leaderboard_data.append({
+            "username": player_data["username"],
+            "wins": player_data["wins"],
+            "games": mongo.db.users.find_one({"username": player_data["username"]}, {"games": 1}).get("games", 0)
+        })
+    # Sort by wins in descending order
+    return sorted(leaderboard_data, key=lambda x: x["wins"], reverse=True)
+
 @socketio.on("connect")
 def on_connect(auth):
     sid = request.sid
@@ -37,10 +48,10 @@ def on_connect(auth):
     wins = user_data.get("wins", 0) if user_data else 0
 
     players[sid] = {
-    "username": username,
-    "x": spawn_x,
-    "y": spawn_y,
-    "wins": wins  # Load wins from database
+        "username": username,
+        "x": spawn_x,
+        "y": spawn_y,
+        "wins": wins  # Load wins from database
     }
 
     # Send shared map seed
@@ -52,6 +63,9 @@ def on_connect(auth):
     # Send only the new player to others
     emit("player_data", {sid: players[sid]}, broadcast=True, include_self=False)
 
+    # Emit updated leaderboard to all players
+    emit("leaderboard_update", get_connected_players_leaderboard(), broadcast=True)
+
 @socketio.on("disconnect")
 def on_disconnect():
     sid = request.sid
@@ -62,6 +76,8 @@ def on_disconnect():
         # Notify other clients that this player is gone
         emit("player_disconnect", {"sid": sid}, broadcast=True)
         del players[sid]
+        # Emit updated leaderboard to all players
+        emit("leaderboard_update", get_connected_players_leaderboard(), broadcast=True)
     else:
         print(f"Warning: SID {sid} not found in players dict")
 
@@ -212,3 +228,6 @@ def handle_rps_complete(data):
     emit("rps_complete", to=winner_sid)
     if loser_sid:
         emit("rps_complete", to=loser_sid)
+
+    # Emit updated leaderboard to all players
+    emit("leaderboard_update", get_connected_players_leaderboard(), broadcast=True)

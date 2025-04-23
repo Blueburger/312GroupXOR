@@ -9,6 +9,8 @@ let rpsTheirWins = 0;
 let rpsMyChoice = null;
 let myWinLabel = null;
 let challengePrompt = null;
+let leaderboardContainer = null;
+let leaderboardText = null;
 
 
 const config = {
@@ -83,8 +85,9 @@ function create() {
     });
     myWinLabel = this.add.text(0, 0, "Wins: 0", {
         font: "14px Arial",
-        fill: "#ffff00"
-    }).setOrigin(0.5);
+        fill: "#ffff00",
+        backgroundColor: "#000"
+    }).setOrigin(0.5, 1.2);
 
    
  
@@ -136,10 +139,11 @@ function create() {
                     backgroundColor: "#000"
                 }).setOrigin(0.5, 1.2);
     
-                const winLabel = game.scene.keys.default.add.text(x, y - 50, `Wins: ${wins}`, {
+                const winLabel = game.scene.keys.default.add.text(x, y - 16, `Wins: ${wins}`, {
                     font: "14px Arial",
-                    fill: "#ffff00"
-                }).setOrigin(0.5);
+                    fill: "#ffff00",
+                    backgroundColor: "#000"
+                }).setOrigin(0.5, 1.2);
     
                 // Only allow opening challenge menu if this is not the local player
                 if (id !== socket.id) {
@@ -159,7 +163,7 @@ function create() {
             // Always update position and label content
             otherPlayers[id].sprite.setPosition(x, y);
             otherPlayers[id].label.setPosition(x, y - 32);
-            otherPlayers[id].winLabel.setPosition(x, y - 50);
+            otherPlayers[id].winLabel.setPosition(x, y - 16);
             otherPlayers[id].winLabel.setText(`Wins: ${wins}`);
         }
     });
@@ -384,6 +388,32 @@ function create() {
         }
     });
 
+    // Create leaderboard container
+    leaderboardContainer = this.add.container(0, 0);
+    leaderboardContainer.setScrollFactor(0); // Make it fixed to the camera
+    leaderboardContainer.setDepth(1000); // Ensure it's always on top
+
+    // Create semi-transparent background for leaderboard
+    const leaderboardBg = this.add.rectangle(0, 0, 200, 150, 0x000000, 0.5);
+    leaderboardBg.setOrigin(0, 0);
+    leaderboardContainer.add(leaderboardBg);
+
+    // Create leaderboard title
+    const leaderboardTitle = this.add.text(10, 10, "Leaderboard", {
+        font: "16px Arial",
+        fill: "#ffffff"
+    });
+    leaderboardContainer.add(leaderboardTitle);
+
+    // Create leaderboard text
+    leaderboardText = this.add.text(10, 40, "", {
+        font: "14px Arial",
+        fill: "#ffffff"
+    });
+    leaderboardContainer.add(leaderboardText);
+
+    // Position the leaderboard in the top right corner
+    leaderboardContainer.setPosition(window.innerWidth - 210, 10);
 
     // Optional: draw grid and border
     //graphics.lineStyle(4, 0xffffff);
@@ -403,6 +433,19 @@ function create() {
         graphics.lineTo(worldWidth, y);
         graphics.strokePath();
     }
+
+    socket.on("leaderboard_update", (leaderboardData) => {
+        if (!leaderboardText) return;
+
+        let leaderboardString = "";
+        leaderboardData.forEach((player, index) => {
+            const losses = player.games - player.wins;
+            leaderboardString += `${index + 1}. ${player.username}\n`;
+            leaderboardString += `   Wins: ${player.wins} | Losses: ${losses}\n\n`;
+        });
+
+        leaderboardText.setText(leaderboardString);
+    });
 }
 
 
@@ -413,6 +456,10 @@ window.addEventListener('resize', () => {
     game.scene.scenes.forEach(scene => {
         if (scene.cameras && scene.cameras.main) {
             scene.cameras.main.setSize(window.innerWidth, window.innerHeight);
+        }
+        // Reposition leaderboard
+        if (leaderboardContainer) {
+            leaderboardContainer.setPosition(window.innerWidth - 210, 10);
         }
     });
 });
@@ -632,7 +679,7 @@ function update() {
     }
     usernameText.setPosition(player.x, player.y - 32);
     if (myWinLabel) {
-        myWinLabel.setPosition(player.x, player.y - 50);
+        myWinLabel.setPosition(player.x, player.y - 16);
     }
 }
 
