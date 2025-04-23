@@ -12,12 +12,14 @@ function generatePlainsBiome(canvasId) {
     const assets = {
         grass: new Image(),
         mushrooms: new Image(),
-        flowers: new Image()
+        flowers: new Image(),
+        tree: new Image()
     };
 
     assets.grass.src = "/static/game/assets/custom_grass.png";
     assets.mushrooms.src = "/static/game/assets/custom_mushroom.png";
     assets.flowers.src = "/static/game/assets/custom_flowers.png";
+    assets.tree.src = "/static/game/assets/custom_tree.png";
 
     const draw = () => {
         for (let y = 0; y < tilesPerCol; y++) {
@@ -30,9 +32,12 @@ function generatePlainsBiome(canvasId) {
                 const roll = Math.random();
                 if (roll < 0.1) {
                     ctx.drawImage(assets.mushrooms, px, py, tileSize, tileSize);
-                } else if (roll < 0.3) {
+                } else if (roll < 0.2) {
                     ctx.drawImage(assets.flowers, px, py, tileSize, tileSize);
+                } else if (roll < 0.21){
+                    ctx.drawImage(assets.tree, px, py - tileSize, tileSize, tileSize * 2);
                 }
+                
             }
         }
     };
