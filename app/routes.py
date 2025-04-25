@@ -67,8 +67,8 @@ def hash_token(token):
 
 @main.route("/register", methods=["POST"])
 def register():
-    username = request.form.get("username")
-    password = request.form.get("password")
+    username = request.form.get("new_username")
+    password = request.form.get("new_password")
 
     if not username or not password:
         current_app.logger.info(f"{request.remote_addr} register attempt: {username} — failed (missing fields)")
