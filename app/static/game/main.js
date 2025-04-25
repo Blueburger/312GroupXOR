@@ -11,6 +11,8 @@ let myWinLabel = null;
 let challengePrompt = null;
 let leaderboardContainer = null;
 let leaderboardText = null;
+let touchPoint = null;
+let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 
 const config = {
@@ -41,11 +43,30 @@ function create() {
 
     this.input.enabled = true;  // Add this at the beginning of create()
     
-    this.input.on('pointerdown', (pointer) => {
-        console.log(`Clicked at ${pointer.x}, ${pointer.y}`);
-    });
+    // Add touch controls for mobile
+    if (isMobile) {
+        // Create a touch indicator
+        touchPoint = this.add.circle(0, 0, 20, 0xff0000, 0.3);
+        touchPoint.setVisible(false);
+        touchPoint.setScrollFactor(0);
+        touchPoint.setDepth(1000);
 
-   
+        // Handle touch events
+        this.input.on('pointerdown', (pointer) => {
+            touchPoint.setPosition(pointer.x, pointer.y);
+            touchPoint.setVisible(true);
+        });
+
+        this.input.on('pointermove', (pointer) => {
+            if (touchPoint.visible) {
+                touchPoint.setPosition(pointer.x, pointer.y);
+            }
+        });
+
+        this.input.on('pointerup', () => {
+            touchPoint.setVisible(false);
+        });
+    }
 
     this.input.keyboard.on('keydown-E', () => {
         console.log("E pressed");
@@ -655,17 +676,40 @@ function generateMapOLD() {
 function update() {
     player.setVelocity(0);
 
-    if (this.cursors.left.isDown) {
-        player.setVelocityX(-200);
-    } else if (this.cursors.right.isDown) {
-        player.setVelocityX(200);
+    if (isMobile && touchPoint && touchPoint.visible) {
+        // Convert touch coordinates to world coordinates
+        const worldPoint = this.cameras.main.getWorldPoint(touchPoint.x, touchPoint.y);
+        
+        // Calculate direction vector from player to touch point
+        const dx = worldPoint.x - player.x;
+        const dy = worldPoint.y - player.y;
+        
+        // Calculate distance
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Normalize and apply velocity if there's significant distance
+        if (distance > 5) {
+            const speed = 200;
+            player.setVelocity(
+                (dx / distance) * speed,
+                (dy / distance) * speed
+            );
+        }
+    } else {
+        // Keyboard controls for non-mobile
+        if (this.cursors.left.isDown) {
+            player.setVelocityX(-200);
+        } else if (this.cursors.right.isDown) {
+            player.setVelocityX(200);
+        }
+
+        if (this.cursors.up.isDown) {
+            player.setVelocityY(-200);
+        } else if (this.cursors.down.isDown) {
+            player.setVelocityY(200);
+        }
     }
 
-    if (this.cursors.up.isDown) {
-        player.setVelocityY(-200);
-    } else if (this.cursors.down.isDown) {
-        player.setVelocityY(200);
-    }
     // Send position to server
     if (socket && socket.connected) {
         socket.emit("move", { x: player.x, y: player.y });
@@ -709,24 +753,32 @@ function openRPSPopup(opponentId) {
     const centerX = cam.scrollX + cam.width / 2;
     const centerY = cam.scrollY + cam.height / 2;
 
+    // Calculate dimensions based on screen size
+    const width = isMobile ? Math.min(window.innerWidth * 0.9, 600) : 400;
+    const height = isMobile ? Math.min(window.innerHeight * 0.8, 500) : 300;
+    const buttonWidth = isMobile ? Math.min(width * 0.25, 120) : 100;
+    const buttonHeight = isMobile ? 60 : 50;
+    const fontSize = isMobile ? '24px' : '18px';
+    const titleFontSize = isMobile ? '32px' : '24px';
+
     // Create container for RPS UI
     rpsGame.ui = scene.add.container(centerX, centerY).setDepth(9999);
 
     // Background
-    const bg = scene.add.rectangle(0, 0, 400, 300, 0x222222, 0.9).setOrigin(0.5);
+    const bg = scene.add.rectangle(0, 0, width, height, 0x222222, 0.9).setOrigin(0.5);
     rpsGame.ui.add(bg);
 
     // Title
-    const title = scene.add.text(0, -120, "Rock Paper Scissors", {
-        font: '24px Arial',
+    const title = scene.add.text(0, -height/2 + 40, "Rock Paper Scissors", {
+        font: `${titleFontSize} Arial`,
         fill: '#ffffff',
         align: 'center'
     }).setOrigin(0.5);
     rpsGame.ui.add(title);
 
     // Result text
-    rpsGame.resultText = scene.add.text(0, -80, "", {
-        font: '18px Arial',
+    rpsGame.resultText = scene.add.text(0, -height/2 + 100, "", {
+        font: `${fontSize} Arial`,
         fill: '#ffffff',
         align: 'center'
     }).setOrigin(0.5);
@@ -736,8 +788,7 @@ function openRPSPopup(opponentId) {
     rpsGame.choiceButtons = scene.add.container(0, 0);
     
     const choices = ["rock", "paper", "scissors"];
-    const buttonWidth = 100;
-    const spacing = 20;
+    const spacing = isMobile ? 30 : 20;
     const totalWidth = (buttonWidth * 3) + (spacing * 2);
     const startX = -totalWidth / 2 + buttonWidth / 2;
 
@@ -748,11 +799,11 @@ function openRPSPopup(opponentId) {
         const button = scene.add.container(x, 0);
         
         // Add background rectangle
-        const buttonBg = scene.add.rectangle(0, 0, buttonWidth, 50, 0x444444).setOrigin(0.5);
+        const buttonBg = scene.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x444444).setOrigin(0.5);
         
         // Add text
         const buttonText = scene.add.text(0, 0, choice.charAt(0).toUpperCase() + choice.slice(1), {
-            font: '18px Arial',
+            font: `${fontSize} Arial`,
             fill: '#ffffff'
         }).setOrigin(0.5);
         
@@ -760,7 +811,7 @@ function openRPSPopup(opponentId) {
         button.add([buttonBg, buttonText]);
         
         // Make the entire button interactive
-        button.setSize(buttonWidth, 50);
+        button.setSize(buttonWidth, buttonHeight);
         button.setInteractive({ useHandCursor: true });
         
         // Add pointerdown event
@@ -788,23 +839,23 @@ function openRPSPopup(opponentId) {
 
     // Win/loss circles
     rpsGame.circles = [];
-    const circleRadius = 15;
-    const circleSpacing = 40;
+    const circleRadius = isMobile ? 25 : 15;
+    const circleSpacing = isMobile ? 60 : 40;
     const circlesStartX = -circleSpacing;
     
     for (let i = 0; i < 3; i++) {
         const x = circlesStartX + (i * circleSpacing);
-        const circle = scene.add.circle(x, 80, circleRadius, 0x888888);
+        const circle = scene.add.circle(x, height/2 - 60, circleRadius, 0x888888);
         rpsGame.circles.push(circle);
         rpsGame.ui.add(circle);
     }
 
     // Close button
-    const closeButton = scene.add.text(0, 120, "Close", {
-        font: '18px Arial',
+    const closeButton = scene.add.text(0, height/2 - 40, "Close", {
+        font: `${fontSize} Arial`,
         fill: '#ff0000',
         backgroundColor: '#000',
-        padding: { x: 10, y: 5 }
+        padding: { x: 20, y: 10 }
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     
     closeButton.on('pointerdown', () => {
