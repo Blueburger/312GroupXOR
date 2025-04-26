@@ -3,6 +3,7 @@ from app import mongo
 from werkzeug.security import generate_password_hash, check_password_hash
 import os, re, uuid, hashlib
 from uuid import uuid4
+import subprocess
 
 main = Blueprint('main', __name__)
 
@@ -133,32 +134,64 @@ def upload_custom_avatar():
     avatar = request.files['avatar']
     try:
         # get file extension from filename
-        if avatar.content_type == 'image/jpeg':
-            file_ext = '.jpeg'
-        elif avatar.content_type == 'image/png':
-            file_ext = '.png'
-        elif avatar.content_type == 'image/svg+xml':
-            file_ext = '.svg'
-        elif avatar.content_type == 'image/webp':
-            file_ext = '.webp'
-        else:
-            try:
-                file_ext = avatar.filename[avatar.filename.rindex('.'):]
-            except ValueError as e:
-                current_app.logger.error(f"Error uploading avatar: {str(e)}")
-                return f"Error uploading avatar: Bad file type\n{str(e)}.", 400
+        file_ext = None
+        try:
+            file_ext = get_file_ext(avatar.filename, avatar.content_type)
+        except ValueError as e:
+            current_app.logger.error(f"Error uploading avatar: {str(e)}")
+            return f"Error uploading avatar: Bad file type\n{str(e)}.", 400
+        # clean up previous avatar file if it exists
+        cleanup_previous_avatar() 
         # generate unique filename for uploaded avatar
-        avatar_path = os.path.join("static", "game", "assets", str(uuid4()) + file_ext)
-        existing_user = mongo.db.users.find_one({"avatar_path": avatar_path})
-        while existing_user:
-            avatar_path = os.path.join("static", "game", "assets", str(uuid4()) + file_ext)
-            existing_user = mongo.db.users.find_one({"avatar_path": avatar_path})
+        avatar_path = generate_unique_filename(file_ext)
         # update the database with the new path
         mongo.db.users.update_one({'username': session.get('username')}, {'$set': {'avatar_path': avatar_path}})
         # save avatar image to file on disk
         avatar.save(os.path.join(current_app.root_path, avatar_path))
-        return redirect(url_for("main.index"))
-        # return "Successfully uploaded custom avatar.", 200
+        return redirect(url_for('main.index'))
     except Exception as e:
         current_app.logger.error(f"Error uploading avatar: {str(e)}")
         return f"Error uploading avatar: {str(e)}. Please try again later.", 500 
+
+# for avatar upload
+def get_file_ext(filename: str, content_type: str):
+    if content_type == 'image/jpeg':
+        return '.jpeg'
+    elif content_type == 'image/png':
+        return '.png'
+    elif content_type == 'image/svg+xml':
+        return '.svg'
+    elif content_type == 'image/webp':
+        return '.webp'
+    else:
+        return filename[filename.rindex('.'):]
+        
+# for avatar upload
+def generate_unique_filename(file_ext: str):
+    avatar_path = os.path.join("static", "game", "assets", str(uuid4()) + file_ext)
+    existing_user = mongo.db.users.find_one({"avatar_path": avatar_path})
+    while existing_user:
+        avatar_path = os.path.join("static", "game", "assets", str(uuid4()) + file_ext)
+        existing_user = mongo.db.users.find_one({"avatar_path": avatar_path})
+    return avatar_path
+
+# for avatar upload
+def cleanup_previous_avatar():
+    # get path of current player's previous avatar
+    current_user_previous_avatar_path = mongo.db.users.find_one({'username': session.get('username')})['avatar_path'] 
+    # delete previous image
+    if current_user_previous_avatar_path:
+        try:
+            os.remove(os.path.join('app', current_user_previous_avatar_path))
+        except Exception as e:
+            current_app.logger.error("Error removing file: \n" + str(e))
+            completed = subprocess.run(["pwd"], capture_output=True)
+            current_app.logger.info("Current directory: " + completed.stdout.decode())
+            if completed.stderr:
+                current_app.logger.error("Error" + completed.stderr.decode())
+            
+            completed = subprocess.run(["ls", "-R"], capture_output=True)
+            current_app.logger.info("Structure: " + completed.stdout.decode())
+            if completed.stderr:
+                current_app.logger.error("Error " + completed.stderr.decode())
+ 
