@@ -47,11 +47,15 @@ def on_connect(auth):
     user_data = mongo.db.users.find_one({"username": username})
     wins = user_data.get("wins", 0) if user_data else 0
 
+    # load player's avatar from database
+    avatar_path = user_data.get("avatar_path")
+
     players[sid] = {
         "username": username,
         "x": spawn_x,
         "y": spawn_y,
-        "wins": wins  # Load wins from database
+        "wins": wins,  # Load wins from database
+        "avatar_path": avatar_path
     }
 
     # Send shared map seed
