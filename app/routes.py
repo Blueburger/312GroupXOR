@@ -3,6 +3,8 @@ from app import mongo
 from werkzeug.security import generate_password_hash, check_password_hash
 import os, re, uuid, hashlib
 from uuid import uuid4
+from PIL import Image, ImageOps
+# debug
 import subprocess
 
 main = Blueprint('main', __name__)
@@ -147,7 +149,10 @@ def upload_custom_avatar():
         # update the database with the new path
         mongo.db.users.update_one({'username': session.get('username')}, {'$set': {'avatar_path': avatar_path}})
         # save avatar image to file on disk
-        avatar.save(os.path.join(current_app.root_path, avatar_path))
+        local_path = os.path.join(current_app.root_path, avatar_path) 
+        avatar.save(local_path)
+        # process image
+        process_avatar(local_path)
         return redirect(url_for('main.index'))
     except Exception as e:
         current_app.logger.error(f"Error uploading avatar: {str(e)}")
@@ -184,6 +189,7 @@ def cleanup_previous_avatar():
         try:
             os.remove(os.path.join('app', current_user_previous_avatar_path))
         except Exception as e:
+             # DEBUG
             current_app.logger.error("Error removing file: \n" + str(e))
             completed = subprocess.run(["pwd"], capture_output=True)
             current_app.logger.info("Current directory: " + completed.stdout.decode())
@@ -194,4 +200,9 @@ def cleanup_previous_avatar():
             current_app.logger.info("Structure: " + completed.stdout.decode())
             if completed.stderr:
                 current_app.logger.error("Error " + completed.stderr.decode())
+            ## DEBUG
  
+# for avatar upload
+def process_avatar(file_path):
+    with Image.open(file_path) as avatar:
+        ImageOps.contain(avatar, (40, 40)).save(file_path)
