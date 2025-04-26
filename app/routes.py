@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from app import mongo
 from werkzeug.security import generate_password_hash, check_password_hash
 import os, re, uuid, hashlib
-#import tkinter as tk
+from uuid import uuid4
 
 main = Blueprint('main', __name__)
 
@@ -10,7 +10,6 @@ main = Blueprint('main', __name__)
 def index():
     username = session.get("username")
     return render_template("index.html", username=username)
-
 
 @main.route("/game")
 def game():
@@ -37,10 +36,6 @@ def leaderboard():
     username = session.get("username")
     return render_template("leaderboard.html", username=username, users_list=newlist)
 
-
-    
-
-
 @main.route("/pingdb")
 def ping_db():
     from app import mongo
@@ -49,7 +44,6 @@ def ping_db():
         return "MongoDB is connected!"
     except Exception as e:
         return f"DB Error: {e}"
-
 
 # FOR ACCOUNT REGISTRATION
 # Password policy function
@@ -90,6 +84,7 @@ def register():
         mongo.db.users.insert_one({
             "username": username,
             "password": hashed_password,
+            "avatar_path": None,
             "wins": 0,
             "games": 0
         })
@@ -100,7 +95,6 @@ def register():
     except Exception as e:
         current_app.logger.error(f"Database error during registration: {str(e)}")
         return "Database connection error. Please try again later.", 500
-
 
 @main.route("/login", methods=["POST"])
 def login():
@@ -128,3 +122,36 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for("main.index"))
+
+@main.route("/upload-custom-avatar", methods=["POST"])
+def upload_custom_avatar():
+    # get avatar image bytes from form
+    avatar = request.files['avatar']
+    try:
+        # get file extension from filename
+        if avatar.content_type == 'image/jpeg':
+            file_ext = '.jpeg'
+        elif avatar.content_type == 'image/png':
+            file_ext = '.png'
+        elif avatar.content_type == 'image/svg+xml':
+            file_ext = '.svg'
+        elif avatar.content_type == 'image/webp':
+            file_ext = '.webp'
+        else:
+            try:
+                file_ext = avatar.filename[avatar.filename.rindex('.'):]
+            except ValueError as e:
+                current_app.logger.error(f"Error uploading avatar: {str(e)}")
+                return f"Error uploading avatar: Bad file type\n{str(e)}.", 400
+        # generate unique filename for uploaded avatar
+        avatar_path = os.path.join(current_app.root_path, "static", "game", "assets", str(uuid4()) + file_ext)
+        existing_user = mongo.db.users.find_one({"avatar_path": avatar_path})
+        while existing_user:
+            avatar_path = os.path.join(current_app.root_path, "static", "game", "assets", str(uuid4()))
+            existing_user = mongo.db.users.find_one({"avatar_path": avatar_path})
+        # save avatar image to file on disk
+        avatar.save(avatar_path)
+        return "Successfully uploaded custom avatar.", 200
+    except Exception as e:
+        current_app.logger.error(f"Error uploading avatar: {str(e)}")
+        return f"Error uploading avatar: {str(e)}. Please try again later.", 500 
