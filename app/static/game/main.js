@@ -1,6 +1,6 @@
 let player;
 let usernameText;
-let avatar;
+// let avatar;
 const worldWidth = 2000;
 const worldHeight = 2000;
 let rpsInProgress = false;
@@ -94,11 +94,11 @@ function create() {
     });
     usernameText.setOrigin(0.5, 1.2);
 
-    avatar = this.physics.add.sprite(worldWidth / 2, worldHeight / 2, 'avatar');
+    // avatar = this.physics.add.sprite(worldWidth / 2, worldHeight / 2, 'avatar');
 
     player.setDepth(1);
     usernameText.setDepth(2);
-    avatar.setDepth(2);
+    // avatar.setDepth(2);
 
     this.cursors = this.input.keyboard.createCursorKeys();
 
@@ -118,16 +118,10 @@ function create() {
  
     // CONNECT SOCKET HERE:
     socket = io();
-    //socket.onAny((event, ...args) => {
-    //    console.log("📥 Caught event:", event, args);
-    //});
-
-  
 
     socket.on("connect", () => {
         console.log("Connected with socket ID:", socket.id);
     });
-
 
     // Player Disconnection Handling
     socket.on("remove_player", (data) => {
@@ -135,63 +129,56 @@ function create() {
         if (otherPlayers[id]) {
             otherPlayers[id].sprite.destroy();
             otherPlayers[id].label.destroy();
+            otherPlayers[id].avatar.destroy();
             delete otherPlayers[id];
         }
     });
 
     socket.on("player_data", (data) => {
-        // Clean up players no longer in the data
-        for (let id in otherPlayers) {
-            if (!data[id]) {
-                otherPlayers[id].sprite.destroy();
-                otherPlayers[id].label.destroy();
-                otherPlayers[id].winLabel.destroy();
-                delete otherPlayers[id];
-            }
-        }
-    
         for (let id in data) {
-            const { username, x, y, wins = 0 } = data[id];
-    
-            // All players now get handled — even the local player
+            const { username, x, y, wins = 0, avatar_path } = data[id];
+
             if (!otherPlayers[id]) {
                 const sprite = game.scene.keys.default.physics.add.sprite(x, y, "player");
                 sprite.setInteractive({ useHandCursor: true });
-    
+
                 const label = game.scene.keys.default.add.text(x, y - 32, username || "???", {
                     font: "16px Arial",
                     fill: "#fff",
                     backgroundColor: "#000"
                 }).setOrigin(0.5, 1.2);
-    
+
                 const winLabel = game.scene.keys.default.add.text(x, y - 16, `Wins: ${wins}`, {
                     font: "14px Arial",
                     fill: "#ffff00",
                     backgroundColor: "#000"
                 }).setOrigin(0.5, 1.2);
 
-                // Only allow opening challenge menu if this is not the local player
-                if (id !== socket.id) {
-                    sprite.on("pointerdown", () => {
-                        if (!rpsInProgress && !challengeMenu && !rpsGame.gameComplete) {
-                            console.log(`[RPS] Opening challenge menu for ${username} (SID: ${id})`);
-                            openChallengeMenu(username, id);
-                        } else if (rpsInProgress || rpsGame.gameComplete) {
-                            console.log("Cannot challenge: game in progress or just completed");
-                        }
+                otherPlayers[id] = { sprite, label, winLabel };
+
+                // Dynamically load the avatar image
+                if (avatar_path) {
+                    const scene = game.scene.keys.default;
+                    scene.load.image(`avatar_${id}`, avatar_path);
+                    scene.load.once("complete", () => {
+                        const avatar = scene.add.image(x, y, `avatar_${id}`);
+                        avatar.setDepth(2);
+                        otherPlayers[id].avatar = avatar;
                     });
+                    scene.load.start();
                 }
-    
-                otherPlayers[id] = { sprite, label, winLabel};
             }
-    
-            // Always update position and label content
+
+            // Update position and labels
             otherPlayers[id].sprite.setPosition(x, y);
             otherPlayers[id].label.setPosition(x, y - 32);
             otherPlayers[id].winLabel.setPosition(x, y - 16);
-            otherPlayers[id].winLabel.setText(`Wins: ${wins}`);
+            if (otherPlayers[id].avatar) {
+                otherPlayers[id].avatar.setPosition(x - 50, y - 32);
+            }
         }
     });
+
     // Generate the Map
     socket.on("map_seed", (data) => {
         mapSeed = data.seed;
@@ -558,7 +545,7 @@ function preload() {
         console.log(`🧩 Emote frame count: ${frameTotal}`);
     });
     this.load.image('player', '/static/game/assets/player.png');
-    this.load.image('avatar', avatar_path);
+    // this.load.image('avatar', avatar_path);
     this.load.image('tiles', '/static/game/assets/custom_grass.png');
 
     this.load.image('mushrooms', '/static/game/assets/custom_mushroom.png');
@@ -723,12 +710,10 @@ function update() {
         myWinLabel.setPosition(player.x, player.y - 16);
     }
     
-    avatar.x = player.x - 40
-    avatar.y = player.y - 40
-    if (avatar && player) {
-        avatar.setPosition(player.x - 40, player.y - 40);
-    }
-    avatar.setPosition(player.x - 40, player.y - 40);
+    // if (avatar && player) {
+    //     avatar.setPosition(player.x - 50, usernameText.y);
+    // }
+    // avatar.setPosition(player.x - 50, usernameText.y);
 
 }
 
