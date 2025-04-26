@@ -91,7 +91,8 @@ def register():
 
         session["username"] = username
         current_app.logger.info(f"{request.remote_addr} register: {username} — success")
-        return "Success", 200
+        return redirect(url_for('main.index')) 
+        # return "Success", 200
     except Exception as e:
         current_app.logger.error(f"Database error during registration: {str(e)}")
         return "Database connection error. Please try again later.", 500
@@ -113,7 +114,8 @@ def login():
 
         session["username"] = username
         current_app.logger.info(f"{request.remote_addr} login: {username} — success")
-        return "Success", 200
+        return redirect(url_for('main.index')) 
+        # return "Success", 200
     except Exception as e:
         current_app.logger.error(f"Database error during login: {str(e)}")
         return "Database connection error. Please try again later.", 500
