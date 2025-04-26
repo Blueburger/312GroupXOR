@@ -15,7 +15,8 @@ def index():
 def game():
     if "username" not in session:
         return redirect(url_for("main.index"))
-    return render_template("game.html", username=session["username"])
+    avatar_path = mongo.db.users.find_one({"username": username})['avatar_path']
+    return render_template("game.html", username=session["username"], avatar_path=avatar_path)
 
 @main.route("/leaderboard")
 def leaderboard():
@@ -153,7 +154,8 @@ def upload_custom_avatar():
             existing_user = mongo.db.users.find_one({"avatar_path": avatar_path})
         # save avatar image to file on disk
         avatar.save(avatar_path)
-        return "Successfully uploaded custom avatar.", 200
+        return redirect(url_for("main.index"))
+        # return "Successfully uploaded custom avatar.", 200
     except Exception as e:
         current_app.logger.error(f"Error uploading avatar: {str(e)}")
         return f"Error uploading avatar: {str(e)}. Please try again later.", 500 
