@@ -15,7 +15,8 @@ def index():
 def game():
     if "username" not in session:
         return redirect(url_for("main.index"))
-    avatar_path = mongo.db.users.find_one({"username": username})['avatar_path']
+    avatar_path = mongo.db.users.find_one({"username": session["username"]})['avatar_path']
+    print('\nAvatar path:', avatar_path, end='\n\n')
     return render_template("game.html", username=session["username"], avatar_path=avatar_path)
 
 @main.route("/leaderboard")
@@ -147,13 +148,15 @@ def upload_custom_avatar():
                 current_app.logger.error(f"Error uploading avatar: {str(e)}")
                 return f"Error uploading avatar: Bad file type\n{str(e)}.", 400
         # generate unique filename for uploaded avatar
-        avatar_path = os.path.join(current_app.root_path, "static", "game", "assets", str(uuid4()) + file_ext)
+        avatar_path = os.path.join("static", "game", "assets", str(uuid4()) + file_ext)
         existing_user = mongo.db.users.find_one({"avatar_path": avatar_path})
         while existing_user:
-            avatar_path = os.path.join(current_app.root_path, "static", "game", "assets", str(uuid4()))
+            avatar_path = os.path.join("static", "game", "assets", str(uuid4()) + file_ext)
             existing_user = mongo.db.users.find_one({"avatar_path": avatar_path})
+        # update the database with the new path
+        mongo.db.users.update_one({'username': session.get('username')}, {'$set': {'avatar_path': avatar_path}})
         # save avatar image to file on disk
-        avatar.save(avatar_path)
+        avatar.save(os.path.join(current_app.root_path, avatar_path))
         return redirect(url_for("main.index"))
         # return "Successfully uploaded custom avatar.", 200
     except Exception as e:

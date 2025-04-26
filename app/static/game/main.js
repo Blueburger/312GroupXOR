@@ -1,5 +1,6 @@
 let player;
 let usernameText;
+let avatar;
 const worldWidth = 2000;
 const worldHeight = 2000;
 let rpsInProgress = false;
@@ -93,8 +94,11 @@ function create() {
     });
     usernameText.setOrigin(0.5, 1.2);
 
+    avatar = this.physics.add.sprite(worldWidth / 2, worldHeight / 2, 'avatar');
+
     player.setDepth(1);
-    usernameText.setDepth(2);   
+    usernameText.setDepth(2);
+    avatar.setDepth(2);
 
     this.cursors = this.input.keyboard.createCursorKeys();
 
@@ -165,7 +169,7 @@ function create() {
                     fill: "#ffff00",
                     backgroundColor: "#000"
                 }).setOrigin(0.5, 1.2);
-    
+
                 // Only allow opening challenge menu if this is not the local player
                 if (id !== socket.id) {
                     sprite.on("pointerdown", () => {
@@ -178,7 +182,7 @@ function create() {
                     });
                 }
     
-                otherPlayers[id] = { sprite, label, winLabel };
+                otherPlayers[id] = { sprite, label, winLabel};
             }
     
             // Always update position and label content
@@ -544,9 +548,6 @@ function openChallengeMenu(targetUsername, targetSid) {
     console.log("✅ Challenge menu rendered for", targetUsername);
 }
 
-
-
-
 function preload() {
     this.load.spritesheet('emote', '/static/game/assets/emote3.webp', {
         frameWidth: 640, //85 // change if your emote frame size is different
@@ -557,11 +558,7 @@ function preload() {
         console.log(`🧩 Emote frame count: ${frameTotal}`);
     });
     this.load.image('player', '/static/game/assets/player.png');
-
-    //this.load.spritesheet('tiles', '/static/game/assets/tilemap_packed.png', {
-    //    frameWidth: 32,
-    //    frameHeight: 32
-    //});
+    this.load.image('avatar', avatar_path);
     this.load.image('tiles', '/static/game/assets/custom_grass.png');
 
     this.load.image('mushrooms', '/static/game/assets/custom_mushroom.png');
@@ -725,6 +722,14 @@ function update() {
     if (myWinLabel) {
         myWinLabel.setPosition(player.x, player.y - 16);
     }
+    
+    avatar.x = player.x - 40
+    avatar.y = player.y - 40
+    if (avatar && player) {
+        avatar.setPosition(player.x - 40, player.y - 40);
+    }
+    avatar.setPosition(player.x - 40, player.y - 40);
+
 }
 
 let rpsGame = {
@@ -972,7 +977,7 @@ function generateMap() {
             biomeMap[key] = biomeTypes[Math.floor(Math.random() * biomeTypes.length)];
         }
     }
-
+{
     // TEST CODE
     // Just to see how the individual aspects of map generation work
     // outer loop goes over the columns of the sprite sheet
@@ -1061,6 +1066,7 @@ function generateMap() {
                 
         }
     }*/
+}
 
     for (let y = 0; y < tilesPerCol; y++) {
         for (let x = 0; x < tilesPerRow; x++) {
