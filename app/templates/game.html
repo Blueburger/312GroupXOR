@@ -63,6 +63,7 @@
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const audio = document.getElementById('bg-music');
+            audio.volume = 0.5;
             // Try to play as soon as DOM is ready, assuming login was required first
             audio.play().catch(err => {
                 console.warn("Autoplay blocked, waiting for user interaction...");
