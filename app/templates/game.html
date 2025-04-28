@@ -64,6 +64,17 @@
         window.addEventListener('DOMContentLoaded', () => {
             const audio = document.getElementById('bg-music');
             audio.volume = 0.5;
+
+            //VOLUME
+            const savedMuteState = localStorage.getItem('bgMusicMuted');
+            if (savedMuteState === 'true') {
+                audio.muted = true;
+            }
+            const savedVolume = localStorage.getItem('bgMusicVolume');
+            if (savedVolume !== null) {
+                audio.volume = parseFloat(savedVolume);
+            }
+
             // Try to play as soon as DOM is ready, assuming login was required first
             audio.play().catch(err => {
                 console.warn("Autoplay blocked, waiting for user interaction...");
@@ -75,7 +86,66 @@
                 };
                 document.addEventListener('click', tryPlay);
             });
+
+            // Create container for mute + slider
+            const controlsContainer = document.createElement('div');
+            controlsContainer.style.position = 'fixed';
+            controlsContainer.style.top = '10px';
+            controlsContainer.style.left = '10px';
+            controlsContainer.style.zIndex = '1001';
+            document.body.appendChild(controlsContainer);
+
+            // Create mute button
+            const muteButton = document.createElement('button');
+
+
+            muteButton.textContent = audio.muted ? '🔇' : '🔈';
+            muteButton.style.position = 'fixed';
+            muteButton.style.top = '10px';
+            muteButton.style.left = '10px';
+            muteButton.style.zIndex = '1001';
+
+            //document.body.appendChild(muteButton);
+            controlsContainer.appendChild(muteButton);
+
+            // Create volume slider
+            const volumeSlider = document.createElement('input');
+            volumeSlider.type = 'range';
+            volumeSlider.min = 0;
+            volumeSlider.max = 1;
+            volumeSlider.step = 0.01;
+            volumeSlider.value = audio.volume;
+            volumeSlider.style.position = 'absolute';
+            volumeSlider.style.top = '130px';  // right under the mute button inside container
+            volumeSlider.style.left = '5px';
+            volumeSlider.style.width = '100px'; // use width, not height
+            volumeSlider.style.height = '20px'; // thickness of the slider
+            volumeSlider.style.transform = 'rotate(-90deg)';
+            volumeSlider.style.transformOrigin = 'top left';
+            //document.body.appendChild(volumeSlider);
+            controlsContainer.appendChild(volumeSlider);
+
+            // Volume slider event
+            volumeSlider.addEventListener('input', (event) => {
+                const volume = parseFloat(event.target.value);
+                audio.volume = volume;
+                localStorage.setItem('bgMusicVolume', volume); // <- Save volume
+            });
+
+            // Mute button toggle
+            muteButton.addEventListener('click', () => {
+                audio.muted = !audio.muted;
+                muteButton.textContent = audio.muted ? '🔇' : '🔈';
+                localStorage.setItem('bgMusicMuted', audio.muted); // <- Save mute state
+            });
         });
+
+        
+
+        
     </script>
+
+    
+
 </body>
 </html>
