@@ -35,22 +35,6 @@ def create_app():
     app.config["MONGO_URI"] = db_uri
     mongo.init_app(app)
 
-    # for the logging all requests sent to server
-    #log_file_path = os.getenv("LOG_FILE", "server.log")
-    #logging.basicConfig(
-    #    filename = log_file_path,
-    #    level=logging.INFO,
-    #    format="%(asctime)s %(message)s",
-    #    datefmt="%Y-%m-%d %H:%M:%S"
-    #)
-    #@app.before_request
-    #def log_request_info():
-    #    ip = request.remote_addr
-    #    method = request.method
-    #    path = request.path
-    #    log_msg = f"{ip} {method} {path}"
-    #    app.logger.info(log_msg)
-      # Setup server.log
     if not os.path.exists("logs"):
         os.mkdir("logs")
 
