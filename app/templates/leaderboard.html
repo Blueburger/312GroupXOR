@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>XOR Project - Login</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <script src="{{ url_for('static', filename='game/generatePlain.js') }}"></script>
 </head>
 <header>
     <div class="container">
@@ -17,6 +19,9 @@
     </div>
 </header>
 <body>
+
+    <canvas id="backgroundCanvas"></canvas> <!-- for background-->
+
     <div class="container">
         <h1> Leaderboard </h1>
         <table id="leaderboard-table" class="display" style="width: 100%">
@@ -36,6 +41,13 @@
             {% endfor %}
         </table>
     </div>
+
+    <script>
+        window.onload = () => {
+            generatePlainsBiome('backgroundCanvas');
+        };
+    </script>
+
 </body>
 <footer>
     <div class="container">
