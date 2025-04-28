@@ -29,16 +29,11 @@ def create_app():
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SECURE"] = False  # Set to True in production over HTTPS
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-    db_uri =  os.getenv("MONGO_URI", default_db_uri) # This is right.
-
+    
+    # Use the MongoDB Atlas URI
+    db_uri = os.getenv("MONGO_URI", default_db_uri)
     app.config["MONGO_URI"] = db_uri
     mongo.init_app(app)
-    #mongo = PyMongo(app)
-    
-
-    # app.config["MONGO_URI"] = os.getenv("MONGO_URI","mongodb://localhost:27017/XORdb")
-    #mongo = PyMongo(app)
-    #mongo.init_app(app)
 
     # for the logging all requests sent to server
     #log_file_path = os.getenv("LOG_FILE", "server.log")

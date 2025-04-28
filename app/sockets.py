@@ -16,6 +16,17 @@ active_rps_games = {}
 MAP_SEED = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
 
 
+def get_connected_players_leaderboard():
+    leaderboard_data = []
+    for sid, player_data in players.items():
+        leaderboard_data.append({
+            "username": player_data["username"],
+            "wins": player_data["wins"],
+            "games": mongo.db.users.find_one({"username": player_data["username"]}, {"games": 1}).get("games", 0)
+        })
+    # Sort by wins in descending order
+    return sorted(leaderboard_data, key=lambda x: x["wins"], reverse=True)
+
 @socketio.on("connect")
 def on_connect(auth):
     sid = request.sid
@@ -32,11 +43,19 @@ def on_connect(auth):
     spawn_x = random.randint(100, 1800)
     spawn_y = random.randint(100, 1800)
 
+    # Load player's wins from the database
+    user_data = mongo.db.users.find_one({"username": username})
+    wins = user_data.get("wins", 0) if user_data else 0
+
+    # load player's avatar from database
+    avatar_path = user_data.get("avatar_path")
+
     players[sid] = {
-    "username": username,
-    "x": spawn_x,
-    "y": spawn_y,
-    "wins": 0  # 🟢 Track wins
+        "username": username,
+        "x": spawn_x,
+        "y": spawn_y,
+        "wins": wins,  # Load wins from database
+        "avatar_path": avatar_path
     }
 
     # Send shared map seed
@@ -48,6 +67,9 @@ def on_connect(auth):
     # Send only the new player to others
     emit("player_data", {sid: players[sid]}, broadcast=True, include_self=False)
 
+    # Emit updated leaderboard to all players
+    emit("leaderboard_update", get_connected_players_leaderboard(), broadcast=True)
+
 @socketio.on("disconnect")
 def on_disconnect():
     sid = request.sid
@@ -58,6 +80,8 @@ def on_disconnect():
         # Notify other clients that this player is gone
         emit("player_disconnect", {"sid": sid}, broadcast=True)
         del players[sid]
+        # Emit updated leaderboard to all players
+        emit("leaderboard_update", get_connected_players_leaderboard(), broadcast=True)
     else:
         print(f"Warning: SID {sid} not found in players dict")
 
@@ -167,46 +191,47 @@ def handle_rps_choice(data):
 
 @socketio.on("rps_complete")
 def handle_rps_complete(data):
-    from_sid = request.sid
-    opponent_sid = data.get("opponentId")
+    sid = request.sid
+    if sid not in players:
+        return
 
-    if not opponent_sid or opponent_sid not in players:
-        print("⚠️ Invalid or missing opponent SID:", opponent_sid)
-        return  # Skip rest to avoid crashing
+    winner_sid = data.get("winner")
+    if not winner_sid or winner_sid not in players:
+        return
 
-    result = data.get("result")
-    key = tuple(sorted([from_sid, opponent_sid]))
+    # Update wins in memory
+    players[winner_sid]["wins"] += 1
 
+    # Update wins in database
+    winner_username = players[winner_sid]["username"]
+    mongo.db.users.update_one(
+        {"username": winner_username},
+        {"$inc": {"wins": 1, "games": 1}},
+        upsert=True
+    )
+
+    # Update games played for both players
+    loser_sid = data.get("loser")
+    if loser_sid and loser_sid in players:
+        loser_username = players[loser_sid]["username"]
+        mongo.db.users.update_one(
+            {"username": loser_username},
+            {"$inc": {"games": 1}},
+            upsert=True
+        )
+
+    # Clean up the game state
+    key = tuple(sorted([winner_sid, loser_sid]))
     if key in active_rps_games:
         del active_rps_games[key]
 
-    emit("rps_complete", to=from_sid)
-    emit("rps_complete", to=opponent_sid)
-
-    # Logging and win tracking
-    try:
-        winner = players[from_sid]['username'] if result == "win" else players[opponent_sid]['username']
-        loser = players[opponent_sid]['username'] if result == "win" else players[from_sid]['username']
-        print(f"{winner} won against {loser}")
-    except:
-        print("⚠️ Could not resolve usernames for result log.")
-
-    if result == "win":
-        players[from_sid]["wins"] += 1
-        wins = players[from_sid]["wins"]
-    elif result == "loss":
-        players[opponent_sid]["wins"] += 1
-        wins = players[opponent_sid]["wins"]
-
-    # Database things
-    winner_player = mongo.db.users.find_one({"username": winner})
-    if winner_player is not None:
-        games = winner_player["games"] + 1
-        mongo.db.users.update_one({"username": winner}, {"$set": {"wins": wins, "games": games}})
-    loser_player = mongo.db.users.find_one({"username": loser})
-    if loser_player is not None:
-        games = loser_player["games"] + 1
-        mongo.db.users.update_one({"username": loser}, {"$set": {"games": games}})
-
-
+    # Broadcast updated player data
     emit("player_data", players, broadcast=True)
+    
+    # Notify both players that the game is complete
+    emit("rps_complete", to=winner_sid)
+    if loser_sid:
+        emit("rps_complete", to=loser_sid)
+
+    # Emit updated leaderboard to all players
+    emit("leaderboard_update", get_connected_players_leaderboard(), broadcast=True)

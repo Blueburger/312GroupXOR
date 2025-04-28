@@ -17,6 +17,10 @@
             <form action="/game">
                 <button type="submit">Go to Game</button>
             </form>
+            <form action="/upload-custom-avatar" method="POST" enctype="multipart/form-data">
+                <input type="file" name="avatar"/>
+                <button type="submit">Upload custom avatar</button>
+            </form> 
         {% else %}
             <h1>Welcome to <img src="{{ url_for('static', filename='game/assets/xor_logo.png') }}" alt="XOR" class="inline-sprite"> Project</h1>
             <form action="/login" method="POST">

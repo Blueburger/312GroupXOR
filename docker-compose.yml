@@ -1,4 +1,3 @@
-version: "3"
 services:
   web:
     build: .
@@ -12,8 +11,6 @@ services:
       - ./server.log:/app/server.log
   mongo:
     image: mongo
-    ports:
-      - "27017:27017"
     volumes:
       - mongo-data:/data/db
     
