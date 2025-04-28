@@ -13,3 +13,8 @@ If run.sh does not work for you, the server can also be started manually
     Then, to run the Flask server locally run this in the terminal:
     1. export ENV_FILE=.env.local
     2. python run.py
+
+
+
+DEPLOYMENT
+The app is deployed and accessible at: xor.cse312.dev
