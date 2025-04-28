@@ -142,6 +142,11 @@ function create() {
                 const sprite = game.scene.keys.default.physics.add.sprite(x, y, "player");
                 sprite.setInteractive({ useHandCursor: true });
 
+                // Add click handler for player interaction
+                sprite.on('pointerdown', () => {
+                    openChallengeMenu(username, id);
+                });
+
                 const label = game.scene.keys.default.add.text(x, y - 32, username || "???", {
                     font: "16px Arial",
                     fill: "#fff",
@@ -167,6 +172,9 @@ function create() {
                     });
                     scene.load.start();
                 }
+            } else {
+                // Update existing player's wins label
+                otherPlayers[id].winLabel.setText(`Wins: ${wins}`);
             }
 
             // Update position and labels

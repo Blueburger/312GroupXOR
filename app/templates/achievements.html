@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>XOR Project - Achievements</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .achievement {
+            border: 2px solid #444;
+            margin: 10px;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #222;
+        }
+        .achievement.unlocked {
+            border-color: #4CAF50;
+            background-color: #1a472a;
+        }
+        .achievement.locked {
+            border-color: #666;
+            background-color: #1a1a1a;
+            opacity: 0.7;
+        }
+        .achievement-title {
+            font-size: 1.2em;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+        .achievement-description {
+            color: #ccc;
+            font-size: 0.9em;
+        }
+        .achievement-status {
+            margin-top: 10px;
+            font-style: italic;
+        }
+        .unlocked .achievement-status {
+            color: #4CAF50;
+        }
+        .locked .achievement-status {
+            color: #666;
+        }
+    </style>
+</head>
+<header>
+    <div class="container">
+        {% if username %}
+            <h1>Welcome back, {{ username }}!</h1>
+            <a href="/logout">Logout</a>
+            <form action="/game">
+                <button type="submit">Go to Game</button>
+            </form>
+        {% endif %}
+    </div>
+</header>
+<body>
+    <div class="container">
+        <h1>Achievements</h1>
+        
+        <div class="achievement {% if achievements.first_emote %}unlocked{% else %}locked{% endif %}">
+            <div class="achievement-title">First Emote</div>
+            <div class="achievement-description">Use the emote animation for the first time</div>
+            <div class="achievement-status">
+                {% if achievements.first_emote %}
+                    Unlocked!
+                {% else %}
+                    Locked
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="achievement {% if achievements.first_win %}unlocked{% else %}locked{% endif %}">
+            <div class="achievement-title">First Victory</div>
+            <div class="achievement-description">Win your first game of Rock Paper Scissors</div>
+            <div class="achievement-status">
+                {% if achievements.first_win %}
+                    Unlocked!
+                {% else %}
+                    Locked
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="achievement {% if achievements.ten_wins %}unlocked{% else %}locked{% endif %}">
+            <div class="achievement-title">Master Player</div>
+            <div class="achievement-description">Win 10 games of Rock Paper Scissors</div>
+            <div class="achievement-status">
+                {% if achievements.ten_wins %}
+                    Unlocked!
+                {% else %}
+                    Locked
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+<footer>
+    <div class="container">
+        <form action="/">
+            <button type="submit">Go Home</button>
+        </form>
+    </div>
+</footer>
+</html> 
