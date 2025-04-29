@@ -55,6 +55,12 @@
         window.addEventListener('DOMContentLoaded', () => {
             const audio = document.getElementById('bg-music');
             audio.volume = 0.25;
+
+            const savedMuteState = localStorage.getItem('bgMusicMuted');
+            if (savedMuteState === 'true') {
+                audio.muted = true;
+            }
+
             // Try to play as soon as DOM is ready, assuming login was required first
             audio.play().catch(err => {
                 console.warn("Autoplay blocked, waiting for user interaction...");
@@ -66,6 +72,25 @@
                 };
                 document.addEventListener('click', tryPlay);
             });
+
+            // Create mute button
+            const muteButton = document.createElement('button');
+
+            muteButton.textContent = audio.muted ? '🔇' : '🔈';
+            muteButton.style.position = 'fixed';
+            muteButton.style.top = '10px';
+            muteButton.style.left = '10px';
+            muteButton.style.zIndex = '1001';
+
+            document.body.appendChild(muteButton);
+
+            // Mute button toggle
+            muteButton.addEventListener('click', () => {
+                audio.muted = !audio.muted;
+                muteButton.textContent = audio.muted ? '🔇' : '🔈';
+                localStorage.setItem('bgMusicMuted', audio.muted); // <- Save mute state
+            });
+
         });
     </script>
 
