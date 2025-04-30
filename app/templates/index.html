@@ -46,6 +46,83 @@
         };
     </script>
 
+    <!-- SCRIPT TO PLAY BACKGROUND MUSIC -->
+    <audio id="bg-music" loop>
+        <source src="{{ url_for('static', filename='/game/music/Calmer and Readyer.mp3') }}" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const audio = document.getElementById('bg-music');
+            audio.volume = 0.25;
+
+            const savedMuteState = localStorage.getItem('bgMusicMuted');
+            if (savedMuteState === 'true') {
+                audio.muted = true;
+            }
+            const savedVolume = localStorage.getItem('bgMusicVolume');
+            if (savedVolume !== null) {
+                audio.volume = parseFloat(savedVolume);
+            }
+
+            // Try to play as soon as DOM is ready, assuming login was required first
+            audio.play().catch(err => {
+                console.warn("Autoplay blocked, waiting for user interaction...");
+                const tryPlay = () => {
+                    audio.play().then(() => {
+                        console.log("Music started after interaction.");
+                        document.removeEventListener('click', tryPlay);
+                    }).catch(() => {});
+                };
+                document.addEventListener('click', tryPlay);
+            });
+
+            // Create mute button
+            const muteButton = document.createElement('button');
+
+            muteButton.textContent = audio.muted ? '🔇' : '🔈';
+            muteButton.style.position = 'fixed';
+            muteButton.style.top = '10px';
+            muteButton.style.left = '10px';
+            muteButton.style.zIndex = '1001';
+
+            document.body.appendChild(muteButton);
+
+            // Mute button toggle
+            muteButton.addEventListener('click', () => {
+                audio.muted = !audio.muted;
+                muteButton.textContent = audio.muted ? '🔇' : '🔈';
+                localStorage.setItem('bgMusicMuted', audio.muted); // <- Save mute state
+            });
+
+            // Create vertical volume slider
+            const volumeSlider = document.createElement('input');
+            volumeSlider.type = 'range';
+            volumeSlider.min = 0;
+            volumeSlider.max = 1;
+            volumeSlider.step = 0.01;
+            volumeSlider.value = audio.volume;
+
+            volumeSlider.style.position = 'fixed';
+            volumeSlider.style.top = '180px'; // place under mute button
+            volumeSlider.style.left = '10px'; // align with mute button
+            volumeSlider.style.zIndex = '1001';
+            volumeSlider.style.transform = 'rotate(-90deg)';
+            volumeSlider.style.transformOrigin = 'left top';
+            volumeSlider.style.width = '100px'; // vertical height after rotation
+
+            document.body.appendChild(volumeSlider);
+
+            // Volume slider event
+            volumeSlider.addEventListener('input', (event) => {
+                const volume = parseFloat(event.target.value);
+                audio.volume = volume;
+                localStorage.setItem('bgMusicVolume', volume); // <- Save volume
+            });
+
+        });
+    </script>
+
 
     <div class="container">
         <form action="/leaderboard">
