@@ -62,6 +62,10 @@
             if (savedMuteState === 'true') {
                 audio.muted = true;
             }
+            const savedVolume = localStorage.getItem('bgMusicVolume');
+            if (savedVolume !== null) {
+                audio.volume = parseFloat(savedVolume);
+            }
 
             // Try to play as soon as DOM is ready, assuming login was required first
             audio.play().catch(err => {
@@ -91,6 +95,31 @@
                 audio.muted = !audio.muted;
                 muteButton.textContent = audio.muted ? '🔇' : '🔈';
                 localStorage.setItem('bgMusicMuted', audio.muted); // <- Save mute state
+            });
+
+            // Create vertical volume slider
+            const volumeSlider = document.createElement('input');
+            volumeSlider.type = 'range';
+            volumeSlider.min = 0;
+            volumeSlider.max = 1;
+            volumeSlider.step = 0.01;
+            volumeSlider.value = audio.volume;
+
+            volumeSlider.style.position = 'fixed';
+            volumeSlider.style.top = '180px'; // place under mute button
+            volumeSlider.style.left = '10px'; // align with mute button
+            volumeSlider.style.zIndex = '1001';
+            volumeSlider.style.transform = 'rotate(-90deg)';
+            volumeSlider.style.transformOrigin = 'left top';
+            volumeSlider.style.width = '100px'; // vertical height after rotation
+
+            document.body.appendChild(volumeSlider);
+
+            // Volume slider event
+            volumeSlider.addEventListener('input', (event) => {
+                const volume = parseFloat(event.target.value);
+                audio.volume = volume;
+                localStorage.setItem('bgMusicVolume', volume); // <- Save volume
             });
 
         });
