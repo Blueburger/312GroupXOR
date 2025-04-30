@@ -78,7 +78,7 @@
             });
 
             // Create mute button
-            const muteButton = document.createElement('button');
+            const muteButton = document.createElement('mute-button');
 
             muteButton.textContent = audio.muted ? '🔇' : '🔈';
             muteButton.style.position = 'fixed';
@@ -104,8 +104,8 @@
             volumeSlider.value = audio.volume;
 
             volumeSlider.style.position = 'fixed';
-            volumeSlider.style.top = '180px'; // place under mute button
-            volumeSlider.style.left = '10px'; // align with mute button
+            volumeSlider.style.top = '150px'; // place under mute button
+            volumeSlider.style.left = '0px'; // align with mute button
             volumeSlider.style.zIndex = '1001';
             volumeSlider.style.transform = 'rotate(-90deg)';
             volumeSlider.style.transformOrigin = 'left top';
