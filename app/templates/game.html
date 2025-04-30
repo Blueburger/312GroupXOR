@@ -96,7 +96,7 @@
             document.body.appendChild(controlsContainer);
 
             // Create mute button
-            const muteButton = document.createElement('button');
+            const muteButton = document.createElement('mute-button');
 
 
             muteButton.textContent = audio.muted ? '🔇' : '🔈';
@@ -117,7 +117,7 @@
             volumeSlider.value = audio.volume;
             volumeSlider.style.position = 'absolute';
             volumeSlider.style.top = '130px';  // right under the mute button inside container
-            volumeSlider.style.left = '5px';
+            volumeSlider.style.left = '0px';
             volumeSlider.style.width = '100px'; // use width, not height
             volumeSlider.style.height = '20px'; // thickness of the slider
             volumeSlider.style.transform = 'rotate(-90deg)';
