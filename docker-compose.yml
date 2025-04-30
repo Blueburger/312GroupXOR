@@ -9,6 +9,7 @@ services:
       - mongo
     volumes:
       - ./logs:/app/logs
+      - ./app/static/game/assets:/app/app/static/game/assets
   mongo:
     image: mongo
     volumes:
