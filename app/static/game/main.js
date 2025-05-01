@@ -124,12 +124,15 @@ function create() {
     });
 
     // Player Disconnection Handling
-    socket.on("remove_player", (data) => {
-        const id = data.id;
+    socket.on("player_disconnect", (data) => {
+        const id = data.sid;
         if (otherPlayers[id]) {
             otherPlayers[id].sprite.destroy();
             otherPlayers[id].label.destroy();
-            otherPlayers[id].avatar.destroy();
+            otherPlayers[id].winLabel.destroy();
+            if (otherPlayers[id].avatar) {
+                otherPlayers[id].avatar.destroy();
+            }
             delete otherPlayers[id];
         }
     });
