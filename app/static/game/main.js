@@ -15,7 +15,6 @@ let leaderboardText = null;
 let touchPoint = null;
 let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-
 const config = {
     type: Phaser.AUTO,
     width: window.innerWidth,
@@ -140,8 +139,8 @@ function create() {
     socket.on("player_data", (data) => {
         for (let id in data) {
             const { username, x, y, wins = 0, avatar_path } = data[id];
-
-            if (!otherPlayers[id]) {
+            
+            if (!otherPlayers[id]) { 
                 const sprite = game.scene.keys.default.physics.add.sprite(x, y, "player");
                 sprite.setInteractive({ useHandCursor: true });
 
@@ -492,6 +491,10 @@ let challengeMenu;
 
 
 function openChallengeMenu(targetUsername, targetSid) {
+    if (socket.id == targetSid) {
+        console.log("You cannot challenge yourself.");
+        return;
+    }
     console.log("🧩 Opening challenge menu for SID:", targetSid);  // Debug log
     if (!targetSid) {
         console.warn("⚠️ No target SID provided for challenge menu.");
