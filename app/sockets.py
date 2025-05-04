@@ -112,6 +112,8 @@ def evaluate_rps(p1_choice, p2_choice):
 
 @socketio.on("rps_challenge")
 def handle_rps_challenge(data):
+    if len(players) == 1: #You cannot challenge yourself.
+        return
     from_sid = request.sid
     to_sid = data.get("to") or data.get("target")  # Accept both
     from_username = players.get(from_sid, {}).get("username", "???")
@@ -120,6 +122,8 @@ def handle_rps_challenge(data):
     if not to_sid or to_sid not in players:
         print("⚠️ Invalid or missing opponent SID:", to_sid)
         return
+    
+    
 
     if to_sid in players:
         emit("rps_challenge_received", {
