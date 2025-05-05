@@ -560,6 +560,9 @@ function preload() {
     this.load.image('golden_tree', '/static/game/assets/custom_golden_tree.png');
     this.load.image('house', '/static/game/assets/custom_house.png');
     this.load.image('flowers', '/static/game/assets/custom_flowers.png');
+    this.load.image('sparce_flowers', '/static/game/assets/custom_sparce_flowers.png');
+    this.load.image('flower_tree', '/static/game/assets/custom_flower_tree.png');
+
 
 
     this.load.once('complete', () => {
@@ -969,7 +972,7 @@ function generateMap() {
     const tilesPerRow = Math.floor(worldWidth / tileSize);
     const tilesPerCol = Math.floor(worldHeight / tileSize);
     const chunkSize = 16;
-    const biomeTypes = ['plains', 'forest', 'village'];
+    const biomeTypes = ['plains', 'forest', 'village', 'flower_fields'];
     const biomeMap = {};
 
     const occupied = new Set(); // Track used tile positions for houses
@@ -981,14 +984,12 @@ function generateMap() {
             biomeMap[key] = biomeTypes[Math.floor(Math.random() * biomeTypes.length)];
         }
     }
-{
-
-}
 
     for (let y = 0; y < tilesPerCol; y++) {
         for (let x = 0; x < tilesPerRow; x++) {
             const chunkX = Math.floor(x / chunkSize);
             const chunkY = Math.floor(y / chunkSize);
+
             const biome = biomeMap[`${chunkX},${chunkY}`];
 
             // Always draw grass
@@ -1002,7 +1003,8 @@ function generateMap() {
                 if (roll < 0.1) tileIndex = 4;   // pine tree
                 else if (roll < 0.18) tileIndex = 5; // golden tree
                 else if (roll < 0.30) tileIndex = 7; // mushrooms
-                else if (roll < 0.45) tileIndex = 8 //flowers
+                else if (roll < 0.35) tileIndex = 8 //flowers
+                else if (roll < 0.45) tileIndex = 9 //sparce flowers
 
             } else if (biome === 'village') {
                 if (roll < 0.05) {
@@ -1027,23 +1029,40 @@ function generateMap() {
                 }
             } else if (biome === 'plains') {
                 if (roll < 0.1) tileIndex = 7; // mushrooms
-                else if (roll < 0.2) tileIndex = 8; //flowers
+                else if (roll < 0.13) tileIndex = 8; //flowers
+                else if (roll < 0.20) tileIndex = 9; //sparce flowers
                 else if (roll < 0.23) tileIndex = 4; //tree
+            } else if (biome === 'flower_fields'){
+                if (roll < 0.02) tileIndex = 5; //golden tree
+                else if (roll < 0.03) tileIndex = 4; //normal tree
+                else if (roll < 0.05) tileIndex = 7 //mushrooms
+                else if (roll < 0.15) tileIndex = 6 //flower tree
+                else if (roll < 0.4) tileIndex = 9 //sparce flowers
+                else if (roll < 0.6) tileIndex = 8 //flowers
             }
+
+
 
             if (tileIndex !== null) {
 
-                if (tileIndex == 7){
-                    this.add.sprite(x * tileSize, y * tileSize, 'mushrooms').setOrigin(0)
-                }
-                else if (tileIndex == 4){
+                
+                if (tileIndex == 4){
                     this.add.sprite(x * tileSize, (y - 1) * tileSize, 'tree').setOrigin(0, 0);
                 }
                 else if (tileIndex == 5){
                     this.add.sprite(x * tileSize, (y - 1) * tileSize, 'golden_tree').setOrigin(0, 0);
                 }
+                else if (tileIndex == 6){
+                    this.add.sprite(x * tileSize, (y - 1) * tileSize, 'flower_tree').setOrigin(0, 0);
+                }
+                else if (tileIndex == 7){
+                    this.add.sprite(x * tileSize, y * tileSize, 'mushrooms').setOrigin(0)
+                }
                 else if (tileIndex == 8){
                     this.add.sprite(x * tileSize, y * tileSize, 'flowers').setOrigin(0)
+                }
+                else if (tileIndex == 9){
+                    this.add.sprite(x * tileSize, y * tileSize, 'sparce_flowers').setOrigin(0)
                 }
                 else{
                     this.add.sprite(x * tileSize, y * tileSize, 'tiles', tileIndex).setOrigin(0);
