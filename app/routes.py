@@ -1,11 +1,14 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
-from app import mongo
+import hashlib
+import os
+import re
+
+from flask import Blueprint, render_template, request, redirect, url_for, session, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
-import os, re, uuid, hashlib
-from uuid import uuid4
-from PIL import Image, ImageOps
+
+from app import mongo
+from app.utils.avatars import cleanup_previous_avatar, generate_unique_filename, process_avatar
+
 # debug
-import subprocess
 
 main = Blueprint('main', __name__)
 
@@ -56,6 +59,8 @@ def password_is_valid(password):
     return (
         len(password) >= 8 and
         re.search(r"[A-Z]", password) and
+        re.search(r"[a-z]", password) and
+        re.search(r"[0-9]", password) and
         re.search(r"[!@#$%^&*(),.?\":{}|<>]", password)
     )
 
@@ -75,7 +80,7 @@ def register():
 
     if not password_is_valid(password):
         current_app.logger.info(f"{request.remote_addr} register attempt: {username} — failed (invalid password)")
-        return "Password must be at least 8 characters long and contain at least one number", 400
+        return "Password must contain at least one of each: A-Z, a-z, 0-9, and a special character", 400
 
     try:
         # Check if username already exists
@@ -173,39 +178,3 @@ def get_file_ext(filename: str, content_type: str):
         return '.webp'
     else:
         return filename[filename.rindex('.'):]
-        
-# for avatar upload
-def generate_unique_filename(file_ext: str):
-    avatar_path = os.path.join("static", "game", "assets", str(uuid4()) + file_ext)
-    existing_user = mongo.db.users.find_one({"avatar_path": avatar_path})
-    while existing_user:
-        avatar_path = os.path.join("static", "game", "assets", str(uuid4()) + file_ext)
-        existing_user = mongo.db.users.find_one({"avatar_path": avatar_path})
-    return avatar_path
-
-# for avatar upload
-def cleanup_previous_avatar():
-    # get path of current player's previous avatar
-    current_user_previous_avatar_path = mongo.db.users.find_one({'username': session.get('username')})['avatar_path'] 
-    # delete previous image
-    if current_user_previous_avatar_path:
-        try:
-            os.remove(os.path.join('app', current_user_previous_avatar_path))
-        except Exception as e:
-             # DEBUG
-            current_app.logger.error("Error removing file: \n" + str(e))
-            completed = subprocess.run(["pwd"], capture_output=True)
-            current_app.logger.info("Current directory: " + completed.stdout.decode())
-            if completed.stderr:
-                current_app.logger.error("Error" + completed.stderr.decode())
-            
-            completed = subprocess.run(["ls", "-R"], capture_output=True)
-            current_app.logger.info("Structure: " + completed.stdout.decode())
-            if completed.stderr:
-                current_app.logger.error("Error " + completed.stderr.decode())
-            ## DEBUG
- 
-# for avatar upload
-def process_avatar(file_path):
-    with Image.open(file_path) as avatar:
-        ImageOps.contain(avatar, (40, 40)).save(file_path)
