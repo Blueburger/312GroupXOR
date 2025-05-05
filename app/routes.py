@@ -111,11 +111,13 @@ def login():
         user = mongo.db.users.find_one({"username": username})
         if not user:
             current_app.logger.info(f"{request.remote_addr} login attempt: {username} — failed (user not found)")
-            return "Invalid username", 401
+            return render_template("index.html", error_message="Invalid username"), 401
+            #return "Invalid username", 401
 
         if not check_password_hash(user["password"], password):
             current_app.logger.info(f"{request.remote_addr} login attempt: {username} — failed (wrong password)")
-            return "Invalid password", 401
+            return render_template("index.html", error_message="Invalid password"), 401
+            #return "Invalid password", 401
 
         session["username"] = username
         current_app.logger.info(f"{request.remote_addr} login: {username} — success")
@@ -123,7 +125,8 @@ def login():
         # return "Success", 200
     except Exception as e:
         current_app.logger.error(f"Database error during login: {str(e)}")
-        return "Database connection error. Please try again later.", 500
+        return render_template("index.html", error_message="Database connection error. Please try again later."), 500
+        #return "Database connection error. Please try again later.", 500
 
 @main.route("/logout")
 def logout():

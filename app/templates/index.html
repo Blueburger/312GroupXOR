@@ -23,6 +23,11 @@
             </form> 
         {% else %}
             <h1>Welcome to <img src="{{ url_for('static', filename='game/assets/xor_logo.png') }}" alt="XOR" class="inline-sprite"> Project</h1>
+            {% if error_message %}
+                <script type="text/javascript">
+                    alert("{{ error_message }}");
+                </script>
+            {% endif %}
             <form action="/login" method="POST">
                 <input type="text" name="username" placeholder="Username" required />
                 <input type="password" name="password" placeholder="Password" required />
