@@ -394,14 +394,7 @@ function create() {
     
     socket.on("rps_complete", () => {
         // Reset all game state
-        rpsInProgress = false;
-        rpsOpponentId = null;
-        rpsMyWins = 0;
-        rpsTheirWins = 0;
-        rpsMyChoice = null;
-        rpsGame.gameComplete = false;
-        rpsGame.processedRounds.clear(); // Clear processed rounds
-        rpsGame.locked = false; // Reset the lock
+        resetRPSState();
         
         // Clean up UI if it exists
         if (rpsGame.ui) {
@@ -874,8 +867,20 @@ function openRPSPopup(opponentId) {
     scene.add.existing(rpsGame.ui);
 }
 
+function resetRPSState() {
+    rpsInProgress = false;
+    rpsOpponentId = null;
+    rpsMyWins = 0;
+    rpsTheirWins = 0;
+    rpsMyChoice = null;
+    rpsGame.gameComplete = false;
+    rpsGame.processedRounds.clear(); // Clear processed rounds
+    rpsGame.locked = false; // Reset the lock
+}
+
 function closeRPSPopup() {
     if (rpsGame.ui) {
+        rpsInProgress = false;
         rpsGame.ui.destroy();
         rpsGame.ui = null;
     }
@@ -985,7 +990,6 @@ function generateMap() {
             const chunkX = Math.floor(x / chunkSize);
             const chunkY = Math.floor(y / chunkSize);
 
-            
             const biome = biomeMap[`${chunkX},${chunkY}`];
 
             // Always draw grass
