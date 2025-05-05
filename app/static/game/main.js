@@ -873,6 +873,7 @@ function openRPSPopup(opponentId) {
 
 function closeRPSPopup() {
     if (rpsGame.ui) {
+        rpsInProgress = false;
         rpsGame.ui.destroy();
         rpsGame.ui = null;
     }
@@ -977,94 +978,7 @@ function generateMap() {
         }
     }
 {
-    // TEST CODE
-    // Just to see how the individual aspects of map generation work
-    // outer loop goes over the columns of the sprite sheet
 
-    /*
-    for (let y = 0; y < tilesPerCol; y++) {
-        let j = 0;
-        // inner loop goes over the rows of the sprite sheet
-        for (let x = 0; x < tilesPerRow; x++) {
-            // j is a counter that will be incremented randomly
-            this.add.sprite(x * tileSize, y * tileSize, 'tiles').setOrigin(0);
-
-            if (j % 2 === 0){
-                let k = Math.floor(Math.random() * 3) + 1;
-                if (k % 2 === 0){
-                    //this.add.sprite(x * tileSize, y * tileSize, 'tiles', 2).setOrigin(0); 
-                    this.add.sprite(x * tileSize, y * tileSize, 'mushrooms').setOrigin(0);
-                } else {
-                    //this.add.sprite(x * tileSize, y * tileSize, 'tiles', 1).setOrigin(0);
-                    this.add.sprite(x * tileSize, y * tileSize, 'flowers').setOrigin(0);
-                }
-                
-            } else {
-
-                let k = Math.floor(Math.random() * 3) + 1;
-                if (k % 2 === 0){
-                    //this.add.sprite(x * tileSize, y * tileSize, 'tiles', 0).setOrigin(0); 
-                    // this.add.sprite(x * tileSize, y * tileSize, 'tiles').setOrigin(0);
-                } else {
-                    //this.add.sprite(x * tileSize, y * tileSize, 'tiles', 1).setOrigin(0);
-                    this.add.sprite(x * tileSize, y * tileSize, 'flowers').setOrigin(0);
-                }
-
-                
-            }
-            j+= Math.floor(Math.random() * 3) + 1;
-            
-        }
-        
-    }
-        */
-    
-    /**
-    for (let y = 0; y < tilesPerCol; y++) {
-        for (let x = 0; x < tilesPerRow; x++) {
-            const chunkX = Math.floor(x / chunkSize);
-            const chunkY = Math.floor(y / chunkSize);
-            const biome = biomeMap[`${chunkX},${chunkY}`];
-
-            // Always draw grass
-            this.add.sprite(x * tileSize, y * tileSize, 'tiles', 0).setOrigin(0);
-
-            //let tileIndex = null;
-            //const roll = Math.random();
-           
-            if (biome === 'forest') {
-                if (roll < 0.1) tileIndex = 5;   // pine tree
-                else if (roll < 0.18) tileIndex = 5; // golden tree
-                else if (roll < 0.20) tileIndex = 5; // mushrooms
-
-            }  else if (biome === 'village') {
-               
-                if (roll < 0.05) {
-                    // Cluster a 2x2 house structure
-                    const structure = [
-                        [7, 9],  // top row
-                        [11, 20] // bottom row
-                    ];
-                    for (let dx = 0; dx < 2; dx++) {
-                        for (let dy = 0; dy < 2; dy++) {
-                            const tx = x + dx;
-                            const ty = y + dy;
-                            if (tx < tilesPerRow && ty < tilesPerCol) {
-                                this.add.sprite(tx * tileSize, ty * tileSize, 'tiles', structure[dy][dx]).setOrigin(0);
-                            }
-                        }
-                    }
-                }
-            } else if (biome === 'plains') {
-                if (roll < 0.02) tileIndex = 10; // mushrooms
-            }
-            
-            if (tileIndex !== null) {
-                this.add.sprite(x * tileSize, y * tileSize, 'tiles', tileIndex).setOrigin(0);
-            }
-                
-        }
-    }*/
 }
 
     for (let y = 0; y < tilesPerCol; y++) {
